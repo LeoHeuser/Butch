@@ -14,18 +14,17 @@ public struct ButchTextField: View {
     
     private let placeholder: LocalizedStringKey
     private let leadingIcon: String?
-    private let useGlassEffect: Bool
+    
+    @Environment(\.isEnabled) private var isEnabled
     
     public init(
         _ placeholder: LocalizedStringKey,
         text: Binding<String>,
-        leadingIcon: String? = nil,
-        useGlassEffect: Bool = false
+        leadingIcon: String? = nil
     ) {
         self.placeholder = placeholder
         self._text = text
         self.leadingIcon = leadingIcon
-        self.useGlassEffect = useGlassEffect
     }
     
     // MARK: - Component
@@ -47,36 +46,24 @@ public struct ButchTextField: View {
         .padding(.leading, .spacing16)
         .padding(.trailing, .spacing8)
         .padding(.vertical, .spacing8)
-        .applyTextFieldStyle(useGlassEffect: useGlassEffect)
+        .frame(minHeight: 54)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.black.opacity(0.2), lineWidth: 1)
+        )
+        .opacity(isEnabled ? 1.0 : 0.4)
+        .allowsHitTesting(isEnabled)
         .contentShape(Capsule())
         .onTapGesture {
-            isFocused = true
+            if isEnabled {
+                isFocused = true
+            }
         }
     }
     
     private func clearText() {
         text = ""
-    }
-}
-
-// MARK: - Style Extension
-extension View {
-    @ViewBuilder
-    fileprivate func applyTextFieldStyle(useGlassEffect: Bool) -> some View {
-        if useGlassEffect {
-            if #available(iOS 26, macOS 26, *) {
-                self.glassEffect(.regular.interactive())
-            } else {
-                self
-            }
-        } else {
-            self
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .strokeBorder(.tertiary.opacity(0.4), lineWidth: 1)
-                )
-        }
     }
 }
 
@@ -133,33 +120,25 @@ extension ButchTextField {
     .padding()
 }
 
-#Preview("Glass Effect") {
-    @Previewable @State var text = ""
+#Preview("Disabled") {
+    @Previewable @State var text = "Some text"
     
-    ZStack {
-        Color.blue.ignoresSafeArea()
-        
-        ButchTextField(
-            "textfield.placeholder",
-            text: $text,
-            useGlassEffect: true
-        )
-        .padding()
-    }
+    ButchTextField(
+        "textfield.placeholder",
+        text: $text
+    )
+    .disabled(true)
+    .padding()
 }
 
-#Preview("Glass Effect With Icon") {
-    @Previewable @State var text = ""
+#Preview("Disabled With Icon") {
+    @Previewable @State var text = "Some text"
     
-    ZStack {
-        Color.blue.ignoresSafeArea()
-        
-        ButchTextField(
-            "textfield.placeholder",
-            text: $text,
-            leadingIcon: "camera",
-            useGlassEffect: true
-        )
-        .padding()
-    }
+    ButchTextField(
+        "textfield.placeholder",
+        text: $text,
+        leadingIcon: "camera"
+    )
+    .disabled(true)
+    .padding()
 }
