@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ContentPlaceholder: View {
+struct ButchContentPlaceholder: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     
@@ -27,7 +27,7 @@ struct ContentPlaceholder: View {
 }
 
 #Preview {
-    ContentPlaceholder(
+    ButchContentPlaceholder(
         title: "placeholder.title",
         message: "placeholder.message"
     )
