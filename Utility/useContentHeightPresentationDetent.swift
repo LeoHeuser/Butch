@@ -31,10 +31,12 @@ public extension View {
 
 /// Internal modifier that measures content height and updates presentation detents.
 /// Optimized for performance using background GeometryReader and onChange.
-private struct ContentHeightPresentationDetentModifier: ViewModifier {
+public struct ContentHeightPresentationDetentModifier: ViewModifier {
     @State private var contentHeight: CGFloat = 100
     
-    func body(content: Content) -> some View {
+    public init() {}
+    
+    public func body(content: Content) -> some View {
         content
             .background {
                 GeometryReader { geometry in
