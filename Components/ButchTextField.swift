@@ -64,7 +64,7 @@ extension View {
     @ViewBuilder
     fileprivate func applyTextFieldStyle(useGlassEffect: Bool) -> some View {
         if useGlassEffect {
-            if #available(iOS 26, macOS 15, *) {
+            if #available(iOS 26, macOS 26, *) {
                 self.glassEffect(.regular.interactive())
             } else {
                 self

@@ -21,7 +21,8 @@ let package = Package(
             path: ".",
             sources: [
                 "Components",
-                "Tokens"
+                "Tokens",
+                "Styles"
             ]
         ),
         .testTarget(
