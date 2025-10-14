@@ -18,6 +18,8 @@ public enum ButchButtonKind {
 public struct ButchButtonStyle: ButtonStyle {
     private let kind: ButchButtonKind
     
+    @Environment(\.isEnabled) private var isEnabled
+    
     public init(_ kind: ButchButtonKind = .primary) {
         self.kind = kind
     }
@@ -31,6 +33,8 @@ public struct ButchButtonStyle: ButtonStyle {
             .foregroundStyle(kind == .primary ? Color(white: 1, opacity: 0.9) : Color(white: 0, opacity: 0.9))
             .background(backgroundForKind(configuration.isPressed))
             .clipShape(Capsule())
+            .opacity(isEnabled ? 1.0 : 0.4)
+            .allowsHitTesting(isEnabled)
     }
     
     @ViewBuilder
@@ -39,10 +43,10 @@ public struct ButchButtonStyle: ButtonStyle {
             switch kind {
             case .primary:
                 Color.black
-                    .opacity(isPressed ? 0.7 : 1)
+                    .opacity(isEnabled && isPressed ? 0.7 : 1)
             case .secondary:
                 Color.white
-                    .opacity(isPressed ? 0.7 : 1)
+                    .opacity(isEnabled && isPressed ? 0.7 : 1)
                     .overlay(Capsule().stroke(Color.black.opacity(0.2), lineWidth: 1))
             }
         }
@@ -62,8 +66,16 @@ public extension ButtonStyle where Self == ButchButtonStyle {
         Button("Secondary Button", systemImage: "gear") {}
             .buttonStyle(.butch(.secondary))
         
+        Button("Secondary Button", systemImage: "gear") {}
+            .buttonStyle(.butch(.secondary))
+            .disabled(true)
+        
         Button("Text Only") {}
             .buttonStyle(.butch)
+        
+        Button("Text Only") {}
+            .buttonStyle(.butch)
+            .disabled(true)
     }
     .padding()
 }
