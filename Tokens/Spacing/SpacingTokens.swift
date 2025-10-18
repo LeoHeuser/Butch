@@ -9,15 +9,24 @@ import Foundation
 
 public extension CGFloat {
     
-    static let spacing4: CGFloat = 4
+    // XXS - Extra Extra Small
+    static let spacingXXS: CGFloat = 0
     
-    static let spacing8: CGFloat = 8
+    // XS - Extra Small
+    static let spacingXS: CGFloat = 4
     
-    static let spacing16: CGFloat = 16
+    // S - Small
+    static let spacingS: CGFloat = 8
     
-    static let spacing24: CGFloat = 24
+    // Default
+    static let spacingDefault: CGFloat = 16
     
-    static let spacing32: CGFloat = 32
+    // L - Large
+    static let spacingL: CGFloat = 24
     
-    static let spacing64: CGFloat = 64
+    // XL - Extra Large
+    static let spacingXL: CGFloat = 40
+    
+    // XXL - Extra Extra Large
+    static let spacingXXL: CGFloat = 64
 }

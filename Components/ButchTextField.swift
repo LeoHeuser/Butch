@@ -43,9 +43,9 @@ public struct ButchTextField: View {
                 .opacity(text.isEmpty ? 0 : 1)
                 .animation(.bouncy(duration: 0.3), value: text.isEmpty)
         }
-        .padding(.leading, .spacing16)
-        .padding(.trailing, .spacing8)
-        .padding(.vertical, .spacing8)
+        .padding(.leading, .spacingDefault)
+        .padding(.trailing, .spacingS)
+        .padding(.vertical, .spacingS)
         .frame(minHeight: 54)
         .clipShape(Capsule())
         .overlay(

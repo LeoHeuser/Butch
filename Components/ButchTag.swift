@@ -19,8 +19,8 @@ public struct ButchTag: View {
     // MARK: - Component
     public var body: some View {
         TagContent(title: title)
-            .padding(.horizontal, .spacing16)
-            .padding(.vertical, .spacing8)
+            .padding(.horizontal, .spacingDefault)
+            .padding(.vertical, .spacingS)
             .background(.clear)
             .overlay(
                 RoundedRectangle(cornerRadius: .infinity)
@@ -47,7 +47,7 @@ extension ButchTag {
 
 // MARK: - Example of Use and Preview
 #Preview("ButchTag") {
-    VStack(spacing: .spacing16) {
+    VStack(spacing: .spacingDefault) {
         ButchTag("tag.category")
         ButchTag("tag.featured")
         ButchTag("tag.new")
