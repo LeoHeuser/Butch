@@ -34,6 +34,6 @@ public extension Color {
     }
     
     static var buttonForegroundInverted: Color {
-        .whiteAlpha090
+        adaptiveColor(light: .whiteAlpha090, dark: .blackAlpha090)
     }
 }
