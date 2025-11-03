@@ -36,21 +36,21 @@ public struct ButchTextField: View {
             
             TextField(placeholder, text: $text)
                 .focused($isFocused)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.textPrimary)
             
             ClearButton(action: clearText)
                 .scaleEffect(text.isEmpty ? 0.6 : 1.0)
                 .opacity(text.isEmpty ? 0 : 1)
                 .animation(.bouncy(duration: 0.3), value: text.isEmpty)
         }
-        .padding(.leading, .spacingDefault)
-        .padding(.trailing, .spacingS)
-        .padding(.vertical, .spacingS)
+        .padding(.leading, 16)
+        .padding(.trailing, 8)
+        .padding(.vertical, 8)
         .frame(minHeight: 54)
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .strokeBorder(Color.black.opacity(0.2), lineWidth: 1)
+                .strokeBorder(Color.textFieldBorder, lineWidth: 1)
         )
         .opacity(isEnabled ? 1.0 : 0.4)
         .allowsHitTesting(isEnabled)
@@ -76,7 +76,7 @@ extension ButchTextField {
         var body: some View {
             Image(systemName: systemName)
                 .font(.system(size: 16))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .frame(width: 24, height: 24)
         }
     }
@@ -93,7 +93,7 @@ extension ButchTextField {
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.textPrimary)
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(flexibility: .soft), trigger: triggerFeedback)

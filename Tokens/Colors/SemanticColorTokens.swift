@@ -15,6 +15,10 @@ public extension Color {
         adaptiveColor(light: .blackAlpha070, dark: .whiteAlpha070)
     }
     
+    static var textTertiary: Color {
+        adaptiveColor(light: .blackAlpha040, dark: .whiteAlpha040)
+    }
+    
     static var borderLight: Color {
         adaptiveColor(light: .blackAlpha020, dark: .whiteAlpha020)
     }
@@ -35,5 +39,11 @@ public extension Color {
     
     static var buttonForegroundInverted: Color {
         adaptiveColor(light: .whiteAlpha090, dark: .blackAlpha090)
+    }
+    
+    // MARK: - TextField Tokens
+    
+    static var textFieldBorder: Color {
+        adaptiveColor(light: .blackAlpha020, dark: .whiteAlpha020)
     }
 }
