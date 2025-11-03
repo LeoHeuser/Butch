@@ -1,11 +1,10 @@
 //
-//  File.swift
+//  ButchButtonStyle.swift
 //  ButchSDK
 //
 //  Created by Leo Heuser on 09.10.25.
 //
 
-import Foundation
 import SwiftUI
 
 /// Defines the visual style variant for ButchButtonStyle
@@ -25,30 +24,41 @@ public struct ButchButtonStyle: ButtonStyle {
     }
     
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .foregroundStyle(kind == .primary ? Color(white: 1, opacity: 0.9) : Color(white: 0, opacity: 0.9))
-            .background(backgroundForKind(configuration.isPressed))
-            .clipShape(Capsule())
-            .opacity(isEnabled ? 1.0 : 0.4)
-            .allowsHitTesting(isEnabled)
+        HStack(spacing: 4) {
+            configuration.label
+        }
+        .font(.body)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 54)
+        .foregroundStyle(foregroundColor)
+        .background(backgroundColor)
+        .overlay {
+            if kind == .secondary {
+                Capsule()
+                    .stroke(Color.buttonForegroundPrimary, lineWidth: 1)
+            }
+        }
+        .clipShape(Capsule())
+        .opacity(isEnabled ? 1.0 : 0.4)
+        .allowsHitTesting(isEnabled)
     }
     
-    @ViewBuilder
-    private func backgroundForKind(_ isPressed: Bool) -> some View {
-        Group {
-            switch kind {
-            case .primary:
-                Color.black
-                    .opacity(isEnabled && isPressed ? 0.7 : 1)
-            case .secondary:
-                Color.white
-                    .opacity(isEnabled && isPressed ? 0.7 : 1)
-                    .overlay(Capsule().stroke(Color.black.opacity(0.2), lineWidth: 1))
-            }
+    private var foregroundColor: Color {
+        switch kind {
+        case .primary:
+            return .buttonForegroundInverted
+        case .secondary:
+            return .buttonForegroundPrimary
+        }
+    }
+    
+    private var backgroundColor: Color {
+        switch kind {
+        case .primary:
+            return .buttonForegroundPrimary
+        case .secondary:
+            return .clear
         }
     }
 }
@@ -59,22 +69,19 @@ public extension ButtonStyle where Self == ButchButtonStyle {
 }
 
 #Preview {
-    VStack {
-        Button("Primary Button", systemImage: "gear") {}
+    VStack(spacing: 20) {
+        Button("Button Text", systemImage: "square.on.circle") {}
             .buttonStyle(.butch)
         
-        Button("Secondary Button", systemImage: "gear") {}
+        Button("Button Text", systemImage: "square.on.circle") {}
             .buttonStyle(.butch(.secondary))
         
-        Button("Secondary Button", systemImage: "gear") {}
-            .buttonStyle(.butch(.secondary))
+        Button("Button Text", systemImage: "square.on.circle") {}
+            .buttonStyle(.butch)
             .disabled(true)
         
-        Button("Text Only") {}
-            .buttonStyle(.butch)
-        
-        Button("Text Only") {}
-            .buttonStyle(.butch)
+        Button("Button Text", systemImage: "square.on.circle") {}
+            .buttonStyle(.butch(.secondary))
             .disabled(true)
     }
     .padding()

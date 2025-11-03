@@ -26,4 +26,14 @@ public extension Color {
     static var accentPrimary: Color {
         .orangeAlpha100
     }
+    
+    // MARK: - Button Tokens
+    
+    static var buttonForegroundPrimary: Color {
+        adaptiveColor(light: .blackAlpha090, dark: .whiteAlpha090)
+    }
+    
+    static var buttonForegroundInverted: Color {
+        .whiteAlpha090
+    }
 }
