@@ -39,7 +39,7 @@ extension ButchTag {
         var body: some View {
             Text(title)
                 .font(.system(size: 16))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
         }
     }
