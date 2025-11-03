@@ -21,7 +21,7 @@ struct ButchContentPlaceholder: View {
                 .font(.system(size: 20, weight: .medium))
                 .lineLimit(4)
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.textSecondary)
         .multilineTextAlignment(.leading)
     }
 }
