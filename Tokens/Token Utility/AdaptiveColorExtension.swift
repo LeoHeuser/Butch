@@ -16,13 +16,13 @@ import AppKit
 #endif
 
 extension Color {
-    
+
     /// Creates a color that adapts to the current color scheme.
     /// - Parameters:
     ///   - light: Color for light appearance
     ///   - dark: Color for dark appearance
     /// - Returns: Adaptive color
-    static func adaptiveColor(light: Color, dark: Color) -> Color {
+    public static func adaptiveColor(light: Color, dark: Color) -> Color {
         Color(light: light, dark: dark)
     }
 }
