@@ -11,6 +11,11 @@ public struct ButchContentPlaceholder: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     
+    public init(title: LocalizedStringKey, message: LocalizedStringKey) {
+        self.title = title
+        self.message = message
+    }
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
