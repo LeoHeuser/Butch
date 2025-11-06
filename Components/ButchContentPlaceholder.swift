@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ButchContentPlaceholder: View {
+public struct ButchContentPlaceholder: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     
