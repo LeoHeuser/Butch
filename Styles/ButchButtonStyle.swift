@@ -4,6 +4,7 @@
 //
 //  Created by Leo Heuser on 09.10.25.
 //
+// TODO: Hier nochmal verbessern, da diese Style in dem einfachen und dem DoubleButton genutzt wird. Das sollten wir dann nochmal hier verbessern und zusammen legen zu zwei Styles die auf zwei Objekte auch zeigen.
 
 import SwiftUI
 
@@ -70,6 +71,7 @@ public extension ButtonStyle where Self == ButchButtonStyle {
     static func butch(_ kind: ButchButtonKind) -> ButchButtonStyle { ButchButtonStyle(kind) }
 }
 
+// MARK: - Preview
 #Preview {
     VStack(spacing: 20) {
         Button("Button Text", systemImage: "square.on.circle") {}
