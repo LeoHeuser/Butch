@@ -22,20 +22,20 @@ public struct ButchTextEditor: View {
     public var body: some View {
         TextEditor(text: $text)
             .font(.system(size: 16))
-            .foregroundStyle(text.isEmpty ? Color.primary.opacity(0.4) : Color.primary.opacity(0.9))
-            .frame(minHeight: 108)
-            .padding(16)
+            .foregroundStyle(text.isEmpty ? Color.textSecondary : Color.textPrimary)
+            .frame(maxWidth: .infinity, minHeight: 108)
+            .padding(.spacingDefault)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: .spacingDefault)
+                    .strokeBorder(Color.textFieldBorder, lineWidth: 1)
             )
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
                     Text(placeholder)
                         .font(.system(size: 16))
-                        .foregroundStyle(Color.primary.opacity(0.4))
-                        .padding(16)
-                        .padding(.top, 8)
+                        .foregroundStyle(Color.textSecondary)
+                        .padding(.spacingDefault)
+                        .padding(.top, .spacingS)
                         .allowsHitTesting(false)
                 }
             }
