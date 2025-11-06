@@ -13,7 +13,7 @@ public struct ButchButton: View {
     private let systemImage: String
     private let kind: ButchButtonKind
     private let action: () -> Void
-
+    
     // MARK: - Init
     public init(
         _ titleKey: LocalizedStringKey,
@@ -26,7 +26,7 @@ public struct ButchButton: View {
         self.kind = kind
         self.action = action
     }
-
+    
     // MARK: - View
     public var body: some View {
         Button(titleKey, systemImage: systemImage, action: action)
