@@ -11,7 +11,7 @@ struct ButchContentPlaceholder: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.system(size: 32, weight: .heavy))
