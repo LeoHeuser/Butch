@@ -55,73 +55,56 @@ public struct ButchDoubleActionButton: View {
                 .font(.system(size: 16))
                 .frame(width: secondaryWidth * 2.5, height: 60)
             }
-            .buttonStyle(PrimaryDoubleButtonStyle())
+            .background(Color.black.opacity(0.9))
+            .foregroundStyle(Color.white.opacity(0.9))
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30,
+                    bottomLeadingRadius: 30,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30,
+                    bottomLeadingRadius: 30,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+                .strokeBorder(Color.black.opacity(0.9), lineWidth: 1)
+            )
             
             Button(action: secondaryAction) {
                 Image(systemName: secondaryIcon)
                     .font(.system(size: 16))
                     .frame(width: secondaryWidth, height: 60)
             }
-            .buttonStyle(SecondaryDoubleButtonStyle())
+            .background(.ultraThinMaterial)
+            .foregroundStyle(Color.black.opacity(0.9))
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 30,
+                    topTrailingRadius: 30,
+                    style: .continuous
+                )
+            )
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 30,
+                    topTrailingRadius: 30,
+                    style: .continuous
+                )
+                .strokeBorder(Color.black.opacity(0.9), lineWidth: 1)
+            )
         }
         .frame(height: 60)
-    }
-}
-
-// MARK: - Button Styles
-
-private struct PrimaryDoubleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(Color.buttonForegroundPrimary)
-            .foregroundStyle(Color.buttonForegroundInverted)
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 30,
-                    bottomLeadingRadius: 30,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 0,
-                    style: .continuous
-                )
-            )
-            .overlay(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 30,
-                    bottomLeadingRadius: 30,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .strokeBorder(Color.buttonForegroundPrimary, lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-    }
-}
-
-private struct SecondaryDoubleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Color.buttonForegroundPrimary)
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 30,
-                    topTrailingRadius: 30,
-                    style: .continuous
-                )
-            )
-            .overlay(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 30,
-                    topTrailingRadius: 30,
-                    style: .continuous
-                )
-                .strokeBorder(Color.buttonForegroundPrimary, lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
 }
 
