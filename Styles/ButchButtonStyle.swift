@@ -53,12 +53,14 @@ public struct ButchButtonStyle: ButtonStyle {
         }
     }
     
-    private var backgroundColor: Color {
-        switch kind {
-        case .primary:
-            return .buttonForegroundPrimary
-        case .secondary:
-            return .clear
+    private var backgroundColor: some View {
+        Group {
+            switch kind {
+            case .primary:
+                Color.buttonForegroundPrimary
+            case .secondary:
+                Color.clear.background(.ultraThinMaterial)
+            }
         }
     }
 }
