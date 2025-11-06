@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// A double-action button with a primary and secondary action.
+/// A double-action button combining primary and secondary actions.
 public struct ButchDoubleActionButton: View {
-    // MARK: - Parameters
+    // MARK: - Properties
     private let primaryIcon: String
     private let primaryText: LocalizedStringKey
     private let secondaryIcon: String
@@ -19,14 +19,14 @@ public struct ButchDoubleActionButton: View {
     
     // MARK: - Initializer
     
-    /// Creates a double-action button with configurable width ratio.
+    /// Creates a double-action button.
     /// - Parameters:
-    ///   - primaryIcon: SF Symbol name for the primary action button
-    ///   - primaryText: Localized text for the primary action button
-    ///   - secondaryIcon: SF Symbol name for the secondary action button
-    ///   - secondaryWidth: Width of the secondary button in points (default: 81)
-    ///   - primaryAction: Action to perform when primary button is tapped
-    ///   - secondaryAction: Action to perform when secondary button is tapped
+    ///   - primaryIcon: SF Symbol for primary button
+    ///   - primaryText: Localized text for primary button
+    ///   - secondaryIcon: SF Symbol for secondary button
+    ///   - secondaryWidth: Width of secondary button in points (default: 81)
+    ///   - primaryAction: Primary button action
+    ///   - secondaryAction: Secondary button action
     public init(
         primaryIcon: String,
         primaryText: LocalizedStringKey,
@@ -46,100 +46,84 @@ public struct ButchDoubleActionButton: View {
     // MARK: - View
     public var body: some View {
         HStack(spacing: 0) {
-            PrimaryButton(
-                icon: primaryIcon,
-                text: primaryText,
-                width: secondaryWidth * 2.5,
-                action: primaryAction
-            )
+            Button(action: primaryAction) {
+                HStack(spacing: 4) {
+                    Image(systemName: primaryIcon)
+                    Text(primaryText)
+                        .lineLimit(1)
+                }
+                .font(.system(size: 16))
+                .frame(width: secondaryWidth * 2.5, height: 60)
+            }
+            .buttonStyle(PrimaryDoubleButtonStyle())
             
-            SecondaryButton(
-                icon: secondaryIcon,
-                width: secondaryWidth,
-                action: secondaryAction
-            )
+            Button(action: secondaryAction) {
+                Image(systemName: secondaryIcon)
+                    .font(.system(size: 16))
+                    .frame(width: secondaryWidth, height: 60)
+            }
+            .buttonStyle(SecondaryDoubleButtonStyle())
         }
         .frame(height: 60)
     }
 }
 
-// MARK: - Private Views
+// MARK: - Button Styles
 
-private struct PrimaryButton: View {
-    let icon: String
-    let text: LocalizedStringKey
-    let width: CGFloat
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                
-                Text(text)
-                    .lineLimit(1)
-            }
-            .font(.system(size: 16))
-            .frame(width: width, height: 60)
-        }
-        .background(Color.black.opacity(0.9))
-        .foregroundStyle(Color.white.opacity(0.9))
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 30,
-                bottomLeadingRadius: 30,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 0,
-                style: .continuous
+private struct PrimaryDoubleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Color.buttonForegroundPrimary)
+            .foregroundStyle(Color.buttonForegroundInverted)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30,
+                    bottomLeadingRadius: 30,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
             )
-        )
-        .overlay(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 30,
-                bottomLeadingRadius: 30,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 0,
-                style: .continuous
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30,
+                    bottomLeadingRadius: 30,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+                .strokeBorder(Color.buttonForegroundPrimary, lineWidth: 1)
             )
-            .strokeBorder(Color.black.opacity(0.9), lineWidth: 1)
-        )
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
 }
 
-private struct SecondaryButton: View {
-    let icon: String
-    let width: CGFloat
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .frame(width: width, height: 60)
-        }
-        .foregroundStyle(Color.black.opacity(0.9))
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 30,
-                topTrailingRadius: 30,
-                style: .continuous
+private struct SecondaryDoubleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Color.buttonForegroundPrimary)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 30,
+                    topTrailingRadius: 30,
+                    style: .continuous
+                )
             )
-        )
-        .overlay(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 30,
-                topTrailingRadius: 30,
-                style: .continuous
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 30,
+                    topTrailingRadius: 30,
+                    style: .continuous
+                )
+                .strokeBorder(Color.buttonForegroundPrimary, lineWidth: 1)
             )
-            .strokeBorder(Color.black.opacity(0.9), lineWidth: 1)
-        )
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
 }
-
 
 #Preview {
     ButchDoubleActionButton(
