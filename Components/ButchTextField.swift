@@ -46,7 +46,7 @@ public struct ButchTextField: View {
         .padding(.leading, .spacingDefault)
         .padding(.trailing, .spacingS)
         .padding(.vertical, .spacingS)
-        .frame(minHeight: 54)
+        .frame(maxWidth: .infinity, minHeight: 54)
         .clipShape(Capsule())
         .overlay(
             Capsule()
