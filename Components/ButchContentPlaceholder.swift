@@ -17,7 +17,7 @@ public struct ButchContentPlaceholder: View {
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: .spacingS) {
             Text(title)
                 .font(.system(size: 32, weight: .heavy))
                 .lineLimit(1)

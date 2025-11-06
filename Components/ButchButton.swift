@@ -7,15 +7,15 @@
 
 import SwiftUI
 
-struct ButchButton: View {
+public struct ButchButton: View {
     // MARK: - Properties
     private let titleKey: LocalizedStringKey
     private let systemImage: String
     private let kind: ButchButtonKind
     private let action: () -> Void
-    
+
     // MARK: - Init
-    init(
+    public init(
         _ titleKey: LocalizedStringKey,
         systemImage: String,
         kind: ButchButtonKind = .primary,
@@ -26,9 +26,9 @@ struct ButchButton: View {
         self.kind = kind
         self.action = action
     }
-    
+
     // MARK: - View
-    var body: some View {
+    public var body: some View {
         Button(titleKey, systemImage: systemImage, action: action)
             .buttonStyle(.butch(kind))
     }
