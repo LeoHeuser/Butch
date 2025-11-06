@@ -16,7 +16,7 @@ public struct ButchTag: View {
         self.title = title
     }
     
-    // MARK: - Component
+    // MARK: - View
     public var body: some View {
         TagContent(title: title)
             .padding(.horizontal, .spacingDefault)
@@ -29,7 +29,7 @@ public struct ButchTag: View {
     }
 }
 
-// MARK: - Component Parts
+// MARK: - View Parts
 extension ButchTag {
     
     /// Tag Content
@@ -45,7 +45,7 @@ extension ButchTag {
     }
 }
 
-// MARK: - Example of Use and Preview
+// MARK: - Preview
 #Preview("ButchTag") {
     VStack(spacing: .spacingDefault) {
         ButchTag("tag.category")

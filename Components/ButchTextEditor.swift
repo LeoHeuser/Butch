@@ -18,7 +18,7 @@ public struct ButchTextEditor: View {
         self.placeholder = placeholder
     }
     
-    // MARK: - Component
+    // MARK: - View
     public var body: some View {
         TextEditor(text: $text)
             .font(.system(size: 16))
@@ -42,6 +42,7 @@ public struct ButchTextEditor: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
     ButchTextEditor(text: .constant(""))
         .padding()

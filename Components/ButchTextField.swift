@@ -27,17 +27,17 @@ public struct ButchTextField: View {
         self.leadingIcon = leadingIcon
     }
     
-    // MARK: - Component
+    // MARK: - View
     public var body: some View {
         HStack(spacing: .spacingS) {
             if let icon = leadingIcon {
                 LeadingIcon(systemName: icon)
             }
-
+            
             TextField(placeholder, text: $text)
                 .focused($isFocused)
                 .foregroundStyle(Color.textPrimary)
-
+            
             ClearButton(action: clearText)
                 .scaleEffect(text.isEmpty ? 0.6 : 1.0)
                 .opacity(text.isEmpty ? 0 : 1)
@@ -67,7 +67,7 @@ public struct ButchTextField: View {
     }
 }
 
-// MARK: - Component Parts
+// MARK: - View Parts
 extension ButchTextField {
     /// Leading icon displayed at the start of the text field.
     private struct LeadingIcon: View {

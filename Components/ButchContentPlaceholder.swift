@@ -8,14 +8,17 @@
 import SwiftUI
 
 public struct ButchContentPlaceholder: View {
+    // MARK: - Parameters
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     
+    // MARK: - Initializer
     public init(title: LocalizedStringKey, message: LocalizedStringKey) {
         self.title = title
         self.message = message
     }
     
+    // MARK: - View
     public var body: some View {
         VStack(alignment: .leading, spacing: .spacingS) {
             Text(title)
@@ -31,6 +34,7 @@ public struct ButchContentPlaceholder: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
     ButchContentPlaceholder(
         title: "placeholder.title",
