@@ -24,12 +24,12 @@ public struct ButchButtonStyle: ButtonStyle {
     }
     
     public func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: .spacingXS) {
             configuration.label
         }
         .font(.body)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, .spacingDefault)
+        .padding(.vertical, .spacingS)
         .frame(maxWidth: .infinity, minHeight: 54)
         .foregroundStyle(foregroundColor)
         .background(backgroundColor)

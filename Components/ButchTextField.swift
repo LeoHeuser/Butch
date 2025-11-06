@@ -29,23 +29,23 @@ public struct ButchTextField: View {
     
     // MARK: - Component
     public var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: .spacingS) {
             if let icon = leadingIcon {
                 LeadingIcon(systemName: icon)
             }
-            
+
             TextField(placeholder, text: $text)
                 .focused($isFocused)
                 .foregroundStyle(Color.textPrimary)
-            
+
             ClearButton(action: clearText)
                 .scaleEffect(text.isEmpty ? 0.6 : 1.0)
                 .opacity(text.isEmpty ? 0 : 1)
                 .animation(.bouncy(duration: 0.3), value: text.isEmpty)
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 8)
-        .padding(.vertical, 8)
+        .padding(.leading, .spacingDefault)
+        .padding(.trailing, .spacingS)
+        .padding(.vertical, .spacingS)
         .frame(minHeight: 54)
         .clipShape(Capsule())
         .overlay(
