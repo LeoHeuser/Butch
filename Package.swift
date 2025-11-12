@@ -24,6 +24,10 @@ let package = Package(
                 "Tokens",
                 "Styles",
                 "Utility"
+            ],
+            exclude: [
+                "Tokens/Colors/ColorTokenDefinition.md",
+                "Tokens/Spacing/SpacingTokenDefinition.md"
             ]
         ),
         .testTarget(
