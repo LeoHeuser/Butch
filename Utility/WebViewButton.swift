@@ -12,12 +12,12 @@ public struct WebViewButton: View {
     // MARK: - Properties
     let title: LocalizedStringKey
     let systemImage: String?
-    let toUrl: URL
+    let toUrl: String
     
     @State private var showingWebView = false
     
     // MARK: - Initializer
-    public init(_ title: LocalizedStringKey, systemImage: String? = nil, toUrl: URL) {
+    public init(_ title: LocalizedStringKey, systemImage: String? = nil, toUrl: String) {
         self.title = title
         self.systemImage = systemImage
         self.toUrl = toUrl
@@ -35,7 +35,7 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            WebViewSheet(title: title, url: toUrl, isPresented: $showingWebView)
+            WebViewSheet(title: title, urlString: toUrl, isPresented: $showingWebView)
         }
     }
 }
@@ -44,22 +44,43 @@ public struct WebViewButton: View {
 
 private struct WebViewSheet: View {
     let title: LocalizedStringKey
-    let url: URL
+    let urlString: String
     @Binding var isPresented: Bool
+    
+    private var url: URL? {
+        URL(string: urlString)
+    }
     
     var body: some View {
         NavigationStack {
-            StaticWebView(url: url)
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("button.close") {
-                            isPresented = false
-                        }
+            Group {
+                if let url {
+                    StaticWebView(url: url)
+                } else {
+                    InvalidURLView()
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("button.close") {
+                        isPresented = false
                     }
                 }
+            }
         }
+    }
+}
+
+// MARK: - Invalid URL View
+
+private struct InvalidURLView: View {
+    var body: some View {
+        ContentUnavailableView(
+            "error.invalidUrl",
+            systemImage: "exclamationmark.bubble"
+        )
     }
 }
 
@@ -126,13 +147,19 @@ private final class NavigationHandler: NSObject, WKNavigationDelegate {
     Form {
         WebViewButton(
             "button.legal.imprint",
-            toUrl: URL(string: "https://www.apple.com")!
+            toUrl: "https://www.apple.com"
         )
         
         WebViewButton(
             "button.legal.privacy",
             systemImage: "lock.shield",
-            toUrl: URL(string: "https://www.apple.com")!
+            toUrl: "https://www.apple.com"
+        )
+        
+        WebViewButton(
+            "button.invalidUrl",
+            systemImage: "xmark.circle",
+            toUrl: ""
         )
     }
 }
