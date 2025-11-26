@@ -8,7 +8,7 @@
 import SwiftUI
 import WebKit
 
-struct WebViewButton: View {
+public struct WebViewButton: View {
     // MARK: - Properties
     let title: LocalizedStringKey
     let systemImage: String?
@@ -24,7 +24,7 @@ struct WebViewButton: View {
     }
     
     // MARK: - View
-    var body: some View {
+    public var body: some View {
         Button {
             showingWebView = true
         } label: {
