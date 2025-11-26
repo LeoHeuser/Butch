@@ -59,7 +59,6 @@ public struct ButchDoubleActionButton: View {
                 action: secondaryAction
             )
         }
-        .frame(height: 60)
     }
 }
 
@@ -83,6 +82,7 @@ private struct PrimaryButton: View {
         }
         .foregroundStyle(Color.buttonForegroundInverted)
         .background(Color.buttonForegroundPrimary)
+        .background(.ultraThinMaterial)
         .clipShape(
             UnevenRoundedRectangle(
                 topLeadingRadius: 30,
