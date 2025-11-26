@@ -17,7 +17,7 @@ public struct WebViewButton: View {
     @State private var showingWebView = false
     
     // MARK: - Initializer
-    init(_ title: LocalizedStringKey, systemImage: String? = nil, toUrl: URL) {
+    public init(_ title: LocalizedStringKey, systemImage: String? = nil, toUrl: URL) {
         self.title = title
         self.systemImage = systemImage
         self.toUrl = toUrl
