@@ -10,7 +10,7 @@ import WebKit
 
 // MARK: - Locale.LanguageCode Extension
 
-extension Locale.LanguageCode {
+public extension Locale.LanguageCode {
     static let en = Self("en")
     static let de = Self("de")
 }
