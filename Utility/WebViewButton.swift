@@ -8,19 +8,39 @@
 import SwiftUI
 import WebKit
 
+// MARK: - Locale.LanguageCode Extension
+
+extension Locale.LanguageCode {
+    static let en = Self("en")
+    static let de = Self("de")
+}
+
 public struct WebViewButton: View {
     // MARK: - Properties
     let title: LocalizedStringKey
     let systemImage: String?
-    let toUrl: String
+    let urls: [Locale.LanguageCode: String]
+    let fallback: Locale.LanguageCode
     
     @State private var showingWebView = false
     
+    /// Resolves the URL based on the current app language.
+    private var resolvedUrl: String {
+        let currentLanguage = Locale.current.language.languageCode ?? fallback
+        return urls[currentLanguage] ?? urls[fallback] ?? ""
+    }
+    
     // MARK: - Initializer
-    public init(_ title: LocalizedStringKey, systemImage: String? = nil, toUrl: String) {
+    public init(
+        _ title: LocalizedStringKey,
+        systemImage: String? = nil,
+        urls: [Locale.LanguageCode: String],
+        fallback: Locale.LanguageCode
+    ) {
         self.title = title
         self.systemImage = systemImage
-        self.toUrl = toUrl
+        self.urls = urls
+        self.fallback = fallback
     }
     
     // MARK: - View
@@ -35,7 +55,7 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            WebViewSheet(title: title, urlString: toUrl, isPresented: $showingWebView)
+            WebViewSheet(title: title, urlString: resolvedUrl, isPresented: $showingWebView)
         }
     }
 }
@@ -147,19 +167,21 @@ private final class NavigationHandler: NSObject, WKNavigationDelegate {
     Form {
         WebViewButton(
             "button.legal.imprint",
-            toUrl: "https://www.apple.com"
+            urls: [
+                .en: "https://www.apple.com",
+                .de: "https://www.apple.com/de"
+            ],
+            fallback: .en
         )
         
         WebViewButton(
             "button.legal.privacy",
             systemImage: "lock.shield",
-            toUrl: "https://www.apple.com"
-        )
-        
-        WebViewButton(
-            "button.invalidUrl",
-            systemImage: "xmark.circle",
-            toUrl: ""
+            urls: [
+                .en: "https://www.apple.com/privacy",
+                .de: "https://www.apple.com/de/privacy"
+            ],
+            fallback: .en
         )
     }
 }
