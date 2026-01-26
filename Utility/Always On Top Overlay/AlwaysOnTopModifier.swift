@@ -107,13 +107,21 @@ private final class AlwaysOnTopWindow: UIWindow {
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hitView = super.hitTest(point, with: event)
-        
+
+        print("DEBUG AlwaysOnTopWindow hitTest:")
+        print("  - point: \(point)")
+        print("  - hitView: \(String(describing: hitView))")
+        print("  - rootView: \(String(describing: self.rootViewController?.view))")
+        print("  - hitView == rootView: \(hitView == self.rootViewController?.view)")
+
         // Wenn wir die root view selbst treffen, reichen wir durch (transparenter Background)
         // Wenn wir ein Subview treffen, behalten wir es (die Notification oder Button)
         if hitView == self.rootViewController?.view {
+            print("  -> Returning nil (pass through)")
             return nil
         }
-        
+
+        print("  -> Returning hitView (intercept)")
         return hitView
     }
 }

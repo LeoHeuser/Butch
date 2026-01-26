@@ -25,12 +25,13 @@ struct InAppNotificationComponent: View {
                 Image(systemName: systemImage)
                     .font(.title2)
             }
-            
+
             Text(notification.title)
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             Button("close.inAppNotification", systemImage: "xmark") {
+                print("DEBUG: Button tapped")
                 inAppNotification.currentNotification = nil
             }
             .buttonStyle(.bordered)
@@ -39,9 +40,13 @@ struct InAppNotificationComponent: View {
         .padding(EdgeInsets(top: 16, leading: 32, bottom: 16, trailing: 16))
         .background {
             RoundedRectangle(cornerRadius: 32)
-                .stroke(.separator)
                 .fill(.thinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 32)
+                        .stroke(.separator, lineWidth: 1)
+                }
         }
+        .contentShape(RoundedRectangle(cornerRadius: 32))
         .padding(.horizontal)
     }
     
@@ -64,11 +69,16 @@ struct InAppNotificationComponent: View {
         .padding()
         .background {
             RoundedRectangle(cornerRadius: 32)
-                .stroke(.separator)
                 .fill(.thinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 32)
+                        .stroke(.separator, lineWidth: 1)
+                }
         }
+        .contentShape(RoundedRectangle(cornerRadius: 32))
         .padding(.horizontal)
         .onTapGesture {
+            print("DEBUG: Notification tapped")
             inAppNotification.currentNotification = nil
         }
     }
@@ -95,44 +105,21 @@ struct InAppNotificationOverlayModifier: ViewModifier {
 
 struct InAppNotificationOverlayContent: View {
     @Environment(InAppNotificationService.self) private var service
-    @GestureState private var dragOffset: CGFloat = 0
-    @State private var isDragging = false
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             if let notification = service.currentNotification {
                 InAppNotificationComponent(notification: notification)
                     .padding(.top)
-                    .offset(y: dragOffset)
                     .transition(.move(edge: .top).combined(with: .opacity))
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 15)
-                            .updating($dragOffset) { value, state, _ in
-                                let translation = value.translation.height
-                                state = min(0, translation)
-                            }
-                            .onChanged { _ in
-                                isDragging = true
-                            }
-                            .onEnded { value in
-                                isDragging = false
-                                let translation = value.translation.height
-                                let velocity = value.predictedEndTranslation.height - translation
-
-                                let shouldDismiss = translation < -80 || velocity < -200
-
-                                if shouldDismiss {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        service.currentNotification = nil
-                                    }
-                                }
-                            }
-                    )
             }
-            Spacer()
-                .allowsHitTesting(false)
+            Spacer(minLength: 0)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Leerer Bereich - nichts tun
+                }
         }
-        .animation(isDragging ? nil : .spring(response: 0.4, dampingFraction: 0.75), value: service.currentNotification != nil)
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: service.currentNotification != nil)
     }
 }
 
