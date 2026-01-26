@@ -12,6 +12,40 @@ struct InAppNotificationComponent: View {
     @Environment(InAppNotificationService.self) private var inAppNotification
     
     var body: some View {
+        if notification.message == nil {
+            titleOnlyLayout
+        } else {
+            titleWithMessageLayout
+        }
+    }
+    
+    private var titleOnlyLayout: some View {
+        HStack(spacing: .spacingS) {
+            if let systemImage = notification.systemImage {
+                Image(systemName: systemImage)
+                    .font(.title2)
+            }
+            
+            Text(notification.title)
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Button("close.inAppNotification", systemImage: "xmark") {
+                inAppNotification.currentNotification = nil
+            }
+            .buttonStyle(.bordered)
+            .labelStyle(.iconOnly)
+        }
+        .padding(EdgeInsets(top: 16, leading: 32, bottom: 16, trailing: 16))
+        .background {
+            RoundedRectangle(cornerRadius: 32)
+                .stroke(.separator)
+                .fill(.thinMaterial)
+        }
+        .padding(.horizontal)
+    }
+    
+    private var titleWithMessageLayout: some View {
         VStack(alignment: .leading, spacing: .spacingS) {
             HStack {
                 if let systemImage = notification.systemImage {
@@ -63,13 +97,13 @@ struct InAppNotificationOverlayContent: View {
     @Environment(InAppNotificationService.self) private var service
     @GestureState private var dragOffset: CGFloat = 0
     @State private var isDragging = false
-
+    
     var body: some View {
         ZStack {
             Color.clear
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
-
+            
             VStack {
                 if let notification = service.currentNotification {
                     InAppNotificationComponent(notification: notification)
@@ -89,9 +123,9 @@ struct InAppNotificationOverlayContent: View {
                                     isDragging = false
                                     let translation = value.translation.height
                                     let velocity = value.predictedEndTranslation.height - translation
-
+                                    
                                     let shouldDismiss = translation < -80 || velocity < -200
-
+                                    
                                     if shouldDismiss {
                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                             service.currentNotification = nil
@@ -108,12 +142,19 @@ struct InAppNotificationOverlayContent: View {
 }
 
 #Preview {
-    InAppNotificationComponent(
-        notification: InAppNotificationObject(
-            title: "Test Notification",
-            message: "This is a preview message",
-            systemImage: "bell.fill"
+    VStack {
+        InAppNotificationComponent(
+            notification: InAppNotificationObject(
+                title: "Test Notification",
+                message: "This is a preview message",
+                systemImage: "bell.fill"
+            )
         )
-    )
+        
+        InAppNotificationComponent(
+            notification: InAppNotificationObject(
+                title: "Test Notification")
+        )
+    }
     .environment(InAppNotificationService())
 }
