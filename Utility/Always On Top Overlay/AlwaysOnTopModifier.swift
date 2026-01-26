@@ -27,7 +27,7 @@ public extension View {
 
 struct AlwaysOnTopOverlayModifier<OverlayContent: View>: ViewModifier {
     let overlayContent: () -> OverlayContent
-
+    
     func body(content: Content) -> some View {
         content
             .onAppear {
@@ -41,50 +41,50 @@ struct AlwaysOnTopOverlayModifier<OverlayContent: View>: ViewModifier {
 @MainActor
 private class AlwaysOnTopWindowManager {
     static let shared = AlwaysOnTopWindowManager()
-
-    #if canImport(UIKit) || canImport(AppKit)
+    
+#if canImport(UIKit) || canImport(AppKit)
     private var overlayWindow: AlwaysOnTopWindow?
     private var hostingController: AlwaysOnTopHostingController?
-    #endif
-
+#endif
+    
     private init() {}
-
+    
     func registerContent<Content: View>(_ content: @escaping () -> Content) {
-        #if canImport(UIKit) || canImport(AppKit)
+#if canImport(UIKit) || canImport(AppKit)
         ensureWindowExists()
         hostingController?.rootView = AnyView(content())
-        #endif
+#endif
     }
-
+    
     private func ensureWindowExists() {
-        #if canImport(UIKit) || canImport(AppKit)
+#if canImport(UIKit) || canImport(AppKit)
         guard overlayWindow == nil else { return }
-
-        #if canImport(UIKit)
+        
+#if canImport(UIKit)
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive })
         else {
             return
         }
-
+        
         let window = AlwaysOnTopWindow(windowScene: scene)
-        #elseif canImport(AppKit)
+#elseif canImport(AppKit)
         let window = AlwaysOnTopWindow()
-        #endif
-
+#endif
+        
         overlayWindow = window
         let controller = AlwaysOnTopHostingController(rootView: AnyView(Color.clear))
         hostingController = controller
-
-        #if canImport(UIKit)
+        
+#if canImport(UIKit)
         window.rootViewController = controller
         window.isHidden = false
-        #elseif canImport(AppKit)
+#elseif canImport(AppKit)
         window.contentViewController = controller
         window.orderFront(nil)
-        #endif
-        #endif
+#endif
+#endif
     }
 }
 
@@ -93,26 +93,27 @@ private class AlwaysOnTopWindowManager {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopWindow: UIWindow {
-
+    
     override init(windowScene: UIWindowScene) {
         super.init(windowScene: windowScene)
-
+        
         self.windowLevel = .alert + 1
         self.backgroundColor = .clear
-        self.isUserInteractionEnabled = true
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
-
+    
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hitView = super.hitTest(point, with: event)
-
+        
+        // Wenn wir die root view selbst treffen, reichen wir durch (transparenter Background)
+        // Wenn wir ein Subview treffen, behalten wir es (die Notification oder Button)
         if hitView == self.rootViewController?.view {
             return nil
         }
-
+        
         return hitView
     }
 }
@@ -123,7 +124,7 @@ private final class AlwaysOnTopWindow: UIWindow {
 #if canImport(AppKit)
 @MainActor
 private final class AlwaysOnTopWindow: NSPanel {
-
+    
     init() {
         super.init(
             contentRect: NSScreen.main?.frame ?? .zero,
@@ -131,7 +132,7 @@ private final class AlwaysOnTopWindow: NSPanel {
             backing: .buffered,
             defer: false
         )
-
+        
         self.level = .floating
         self.backgroundColor = .clear
         self.isOpaque = false
@@ -139,14 +140,14 @@ private final class AlwaysOnTopWindow: NSPanel {
         self.ignoresMouseEvents = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     }
-
+    
     override func hitTest(_ point: NSPoint) -> NSView? {
         let hitView = super.hitTest(point)
-
+        
         if hitView == self.contentView {
             return nil
         }
-
+        
         return hitView
     }
 }
@@ -157,12 +158,12 @@ private final class AlwaysOnTopWindow: NSPanel {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
-
+    
     override init(rootView: AnyView) {
         super.init(rootView: rootView)
         view.backgroundColor = .clear
     }
-
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
@@ -172,13 +173,13 @@ private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
 #if canImport(AppKit)
 @MainActor
 private final class AlwaysOnTopHostingController: NSHostingController<AnyView> {
-
+    
     override init(rootView: AnyView) {
         super.init(rootView: rootView)
         view.wantsLayer = true
         view.layer?.backgroundColor = .clear
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
