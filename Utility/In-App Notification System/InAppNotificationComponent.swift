@@ -47,30 +47,11 @@ public extension View {
 }
 
 struct InAppNotificationOverlayModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        InAppNotificationContainer(content: content)
-    }
-}
-
-private struct InAppNotificationContainer<Content: View>: View {
     @State private var inAppNotification = InAppNotificationService()
-    let content: Content
-    
-    var body: some View {
-        ZStack {
-            content
-            
-            VStack {
-                if let notification = inAppNotification.currentNotification {
-                    InAppNotificationComponent(notification: notification)
-                        .padding(.top)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                Spacer()
-            }
-        }
-        .environment(inAppNotification)
-        .animation(.spring, value: inAppNotification.currentNotification != nil)
+
+    func body(content: Content) -> some View {
+        content
+            .environment(inAppNotification)
     }
 }
 
