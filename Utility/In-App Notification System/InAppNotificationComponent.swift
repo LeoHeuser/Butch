@@ -9,10 +9,10 @@ import SwiftUI
 
 struct InAppNotificationComponent: View {
     let notification: InAppNotificationObject
-    let service: InAppNotificationService
+    @Environment(InAppNotificationService.self) private var inAppNotification
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: .spacingS) {
             HStack {
                 if let systemImage = notification.systemImage {
                     Image(systemName: systemImage)
@@ -29,57 +29,58 @@ struct InAppNotificationComponent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 32)
                 .stroke(.separator)
                 .fill(.thinMaterial)
         }
         .padding(.horizontal)
-        .padding(.top, 8)
         .onTapGesture {
-            service.currentNotification = nil
+            inAppNotification.currentNotification = nil
         }
     }
 }
 
 public extension View {
-    func inAppNotificationOverlay(service: InAppNotificationService) -> some View {
-        modifier(InAppNotificationOverlayModifier(service: service))
+    func setupInAppNotifications() -> some View {
+        modifier(InAppNotificationOverlayModifier())
     }
 }
 
 struct InAppNotificationOverlayModifier: ViewModifier {
-    let service: InAppNotificationService
-    
     func body(content: Content) -> some View {
-        content
-            .overlay {
-                if let notification = service.currentNotification {
-                    VStack {
-                        InAppNotificationComponent(notification: notification, service: service)
-                        Spacer()
-                    }
-                    .transition(.move(edge: .top).combined(with: .opacity))
+        InAppNotificationContainer(content: content)
+    }
+}
+
+private struct InAppNotificationContainer<Content: View>: View {
+    @State private var inAppNotification = InAppNotificationService()
+    let content: Content
+    
+    var body: some View {
+        ZStack {
+            content
+            
+            VStack {
+                if let notification = inAppNotification.currentNotification {
+                    InAppNotificationComponent(notification: notification)
+                        .padding(.top)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
+                Spacer()
             }
-            .animation(.spring, value: service.currentNotification != nil)
+        }
+        .environment(inAppNotification)
+        .animation(.spring, value: inAppNotification.currentNotification != nil)
     }
 }
 
 #Preview {
-    @Previewable @State var service = InAppNotificationService()
-    
-    VStack {
-        Spacer()
-        Button("Show Notification") {
-            service.send(InAppNotificationObject(
-                title: "notification.title",
-                message: "notification.message",
-                systemImage: "circle.square"
-            ))
-        }
-        Spacer()
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color.gray.opacity(0.1))
-    .inAppNotificationOverlay(service: service)
+    InAppNotificationComponent(
+        notification: InAppNotificationObject(
+            title: "Test Notification",
+            message: "This is a preview message",
+            systemImage: "bell.fill"
+        )
+    )
+    .environment(InAppNotificationService())
 }

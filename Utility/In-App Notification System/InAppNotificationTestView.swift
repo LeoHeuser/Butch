@@ -8,15 +8,13 @@
 import SwiftUI
 
 public struct InAppNotificationTestView: View {
-    @State var notificationService = InAppNotificationService()
-    
-    public init() {}
+    @Environment(InAppNotificationService.self) private var inAppNotification
     
     public var body: some View {
         VStack {
             Spacer()
             Button("Send Notification") {
-                notificationService.send(InAppNotificationObject(
+                inAppNotification.send(InAppNotificationObject(
                     title: "Test Notification",
                     message: "This is a test message",
                     systemImage: "bell.fill"
@@ -24,11 +22,11 @@ public struct InAppNotificationTestView: View {
             }
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .inAppNotificationOverlay(service: notificationService)
     }
 }
 
+
 #Preview {
     InAppNotificationTestView()
+        .setupInAppNotifications()
 }
