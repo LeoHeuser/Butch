@@ -107,17 +107,21 @@ struct InAppNotificationOverlayContent: View {
     @Environment(InAppNotificationService.self) private var service
 
     var body: some View {
-        VStack(spacing: 0) {
-            if let notification = service.currentNotification {
-                InAppNotificationComponent(notification: notification)
-                    .padding(.top)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-            Spacer(minLength: 0)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // Leerer Bereich - nichts tun
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                if let notification = service.currentNotification {
+                    InAppNotificationComponent(notification: notification)
+                        .padding(.top)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(1)
                 }
+
+                // Expliziter transparenter Bereich der Touches NICHT abfängt
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .allowsHitTesting(false)
+            }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: service.currentNotification != nil)
     }

@@ -93,36 +93,16 @@ private class AlwaysOnTopWindowManager {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopWindow: UIWindow {
-    
+
     override init(windowScene: UIWindowScene) {
         super.init(windowScene: windowScene)
-        
+
         self.windowLevel = .alert + 1
         self.backgroundColor = .clear
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) not implemented")
-    }
-    
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let hitView = super.hitTest(point, with: event)
-
-        print("DEBUG AlwaysOnTopWindow hitTest:")
-        print("  - point: \(point)")
-        print("  - hitView: \(String(describing: hitView))")
-        print("  - rootView: \(String(describing: self.rootViewController?.view))")
-        print("  - hitView == rootView: \(hitView == self.rootViewController?.view)")
-
-        // Wenn wir die root view selbst treffen, reichen wir durch (transparenter Background)
-        // Wenn wir ein Subview treffen, behalten wir es (die Notification oder Button)
-        if hitView == self.rootViewController?.view {
-            print("  -> Returning nil (pass through)")
-            return nil
-        }
-
-        print("  -> Returning hitView (intercept)")
-        return hitView
     }
 }
 #endif
@@ -166,14 +146,45 @@ private final class AlwaysOnTopWindow: NSPanel {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
-    
+
     override init(rootView: AnyView) {
         super.init(rootView: rootView)
-        view.backgroundColor = .clear
+
+        let passThroughView = PassThroughView()
+        passThroughView.translatesAutoresizingMaskIntoConstraints = false
+        passThroughView.backgroundColor = .clear
+
+        // Wrap the hosting view
+        let originalView = view!
+        view = passThroughView
+
+        passThroughView.addSubview(originalView)
+        originalView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            originalView.topAnchor.constraint(equalTo: passThroughView.topAnchor),
+            originalView.bottomAnchor.constraint(equalTo: passThroughView.bottomAnchor),
+            originalView.leadingAnchor.constraint(equalTo: passThroughView.leadingAnchor),
+            originalView.trailingAnchor.constraint(equalTo: passThroughView.trailingAnchor)
+        ])
     }
-    
+
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) not implemented")
+    }
+}
+
+private class PassThroughView: UIView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hitView = super.hitTest(point, with: event)
+
+        // Nur im oberen Bereich (wo die Notification ist) Touches abfangen
+        // Alles andere durchreichen
+        if point.y > 200 {  // Unterhalb der Notification
+            return nil
+        }
+
+        return hitView
     }
 }
 #endif
