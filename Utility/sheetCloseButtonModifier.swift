@@ -1,5 +1,5 @@
 //
-//  SwiftUIView.swift
+//  sheetCloseButtonModifier.swift
 //  ButchSDK
 //
 //  Created by Leo Heuser on 25.01.26.
@@ -7,15 +7,15 @@
 
 import SwiftUI
 
-// TODO: Das hier noch fertig machen. Da gibt es noch keinen Modifikator für.
-
 struct DismissSheetButton: ViewModifier {
-    public func body(content: Content) -> some View {
+    @Environment(\.dismiss) var dismiss
+    
+    func body(content: Content) -> some View {
         content
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("button.dismissSheet", systemImage: "xmark") {
-                        
+                        dismiss()
                     }
                 }
             }
@@ -23,17 +23,23 @@ struct DismissSheetButton: ViewModifier {
 }
 
 public extension View {
-    var sheetDismissButton: some View {
+    func sheetDismissButton() -> some View {
         modifier(DismissSheetButton())
     }
 }
 
 #Preview {
+    @Previewable @State var isPresented: Bool = true
+    
     VStack {
-        Text("Background")
+        Button("Show Sheet") {
+            isPresented.toggle()
+        }
     }
-    .sheet(isPresented: .constant(true)) {
-        Text("Foreground")
-            .sheetDismissButton
+    .sheet(isPresented: $isPresented) {
+        NavigationStack {
+            Text("Foreground")
+                .sheetDismissButton()
+        }
     }
 }
