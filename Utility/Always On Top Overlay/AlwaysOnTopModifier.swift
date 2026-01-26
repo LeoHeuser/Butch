@@ -30,22 +30,8 @@ struct AlwaysOnTopOverlayModifier<OverlayContent: View>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background {
-                AlwaysOnTopWindowManagerView(content: overlayContent)
-            }
-    }
-}
-
-private struct AlwaysOnTopWindowManagerView<Content: View>: View {
-    let content: () -> Content
-
-    var body: some View {
-        Color.clear
             .onAppear {
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(100))
-                    AlwaysOnTopWindowManager.shared.setupWindow(content: content)
-                }
+                AlwaysOnTopWindowManager.shared.registerContent(overlayContent)
             }
     }
 }
@@ -58,28 +44,45 @@ private class AlwaysOnTopWindowManager {
 
     #if canImport(UIKit) || canImport(AppKit)
     private var overlayWindow: AlwaysOnTopWindow?
+    private var hostingController: AlwaysOnTopHostingController?
     #endif
 
     private init() {}
 
-    func setupWindow<Content: View>(content: @escaping () -> Content) {
+    func registerContent<Content: View>(_ content: @escaping () -> Content) {
+        #if canImport(UIKit) || canImport(AppKit)
+        ensureWindowExists()
+        hostingController?.rootView = AnyView(content())
+        #endif
+    }
+
+    private func ensureWindowExists() {
         #if canImport(UIKit) || canImport(AppKit)
         guard overlayWindow == nil else { return }
 
-        guard let window = AlwaysOnTopWindow() else {
-            print("⚠️ AlwaysOnTopOverlay: Could not create window - no active scene found")
+        #if canImport(UIKit)
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive })
+        else {
             return
         }
 
+        let window = AlwaysOnTopWindow(windowScene: scene)
+        #elseif canImport(AppKit)
+        let window = AlwaysOnTopWindow()
+        #endif
+
         overlayWindow = window
-        let hostingController = AlwaysOnTopHostingController(rootView: AnyView(content()))
+        let controller = AlwaysOnTopHostingController(rootView: AnyView(Color.clear))
+        hostingController = controller
 
         #if canImport(UIKit)
-        overlayWindow?.rootViewController = hostingController
-        overlayWindow?.isHidden = false
+        window.rootViewController = controller
+        window.isHidden = false
         #elseif canImport(AppKit)
-        overlayWindow?.contentViewController = hostingController
-        overlayWindow?.orderFront(nil)
+        window.contentViewController = controller
+        window.orderFront(nil)
         #endif
         #endif
     }
@@ -91,15 +94,8 @@ private class AlwaysOnTopWindowManager {
 @MainActor
 private final class AlwaysOnTopWindow: UIWindow {
 
-    init?() {
-        guard let scene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive })
-        else {
-            return nil
-        }
-
-        super.init(windowScene: scene)
+    override init(windowScene: UIWindowScene) {
+        super.init(windowScene: windowScene)
 
         self.windowLevel = .alert + 1
         self.backgroundColor = .clear
