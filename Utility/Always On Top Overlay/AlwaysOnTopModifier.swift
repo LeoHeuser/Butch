@@ -30,8 +30,22 @@ struct AlwaysOnTopOverlayModifier<OverlayContent: View>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .background {
+                AlwaysOnTopWindowManagerView(content: overlayContent)
+            }
+    }
+}
+
+private struct AlwaysOnTopWindowManagerView<Content: View>: View {
+    let content: () -> Content
+
+    var body: some View {
+        Color.clear
             .onAppear {
-                AlwaysOnTopWindowManager.shared.setupWindow(content: overlayContent)
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(100))
+                    AlwaysOnTopWindowManager.shared.setupWindow(content: content)
+                }
             }
     }
 }
@@ -52,7 +66,12 @@ private class AlwaysOnTopWindowManager {
         #if canImport(UIKit) || canImport(AppKit)
         guard overlayWindow == nil else { return }
 
-        overlayWindow = AlwaysOnTopWindow()
+        guard let window = AlwaysOnTopWindow() else {
+            print("⚠️ AlwaysOnTopOverlay: Could not create window - no active scene found")
+            return
+        }
+
+        overlayWindow = window
         let hostingController = AlwaysOnTopHostingController(rootView: AnyView(content()))
 
         #if canImport(UIKit)
@@ -72,11 +91,15 @@ private class AlwaysOnTopWindowManager {
 @MainActor
 private final class AlwaysOnTopWindow: UIWindow {
 
-    init() {
-        let scene = UIApplication.shared.connectedScenes
-            .first { $0.activationState == .foregroundActive } as? UIWindowScene
+    init?() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive })
+        else {
+            return nil
+        }
 
-        super.init(windowScene: scene!)
+        super.init(windowScene: scene)
 
         self.windowLevel = .alert + 1
         self.backgroundColor = .clear
