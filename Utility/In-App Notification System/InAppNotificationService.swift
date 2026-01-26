@@ -5,15 +5,35 @@
 //  Created by Leo Heuser on 26.01.26.
 //
 
-import Foundation
+import SwiftUI
 
-@Observable
-class InAppNotificationService {
+public struct InAppNotificationObject {
+    public let title: LocalizedStringKey
+    public let message: LocalizedStringKey?
+    public let systemImage: String?
     
+    public init(title: LocalizedStringKey, message: LocalizedStringKey? = nil, systemImage: String? = nil) {
+        self.title = title
+        self.message = message
+        self.systemImage = systemImage
+    }
 }
 
-/// TODO: Call of In-App Notification
-/// You can call the "@Environment(InAppNotificationService.self) var inAppNotification" within every SwiftUI view when the ".environment(inAppNotification)" is deifnied on the root level of the application.
-/// The you can just call in any line of the code inAppNotification.send(InAppNotificationObject). This will send  an object to the service and the service will ensire that it is displayed appropiated.
-///
-/// Definition of the InAppNotificationObject: It has (1) title:LocalizedStringKey, (2) message:LocalizedStringKey?, and (3) systemImage: String?. These are the parameters that the notifacion need so that the notifaction can be displayed.
+@Observable
+@MainActor
+public class InAppNotificationService {
+    public var currentNotification: InAppNotificationObject?
+    
+    public init() {}
+    
+    public func send(_ notification: InAppNotificationObject) {
+        currentNotification = notification
+        
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            if currentNotification?.title == notification.title {
+                currentNotification = nil
+            }
+        }
+    }
+}
