@@ -8,24 +8,27 @@
 import SwiftUI
 
 public struct InAppNotificationTestView: View {
+    // MARK: Parameters
     @Environment(InAppNotificationService.self) private var inAppNotification
     
+    // MARK: View
     public var body: some View {
         VStack {
             Spacer()
+            
             Button("Send Notification") {
                 inAppNotification.send(InAppNotificationObject(
                     title: "Test Notification",
-                    message: "This is a test message",
                     systemImage: "bell.fill"
                 ))
             }
+            
             Spacer()
         }
     }
 }
 
-
+// MARK: Preview
 #Preview {
     InAppNotificationTestView()
         .setupInAppNotifications()

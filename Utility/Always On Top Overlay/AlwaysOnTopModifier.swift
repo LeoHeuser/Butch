@@ -17,6 +17,9 @@ import AppKit
 
 // MARK: - Public API
 
+// TODO: Das geht hier nicht mehr. Wenn ich das nun in meine App einbaue, dann ist alles nur noch schwarz, aber die App Stürtzt nicht ab; sondern man sieht nur nichts mehr. Ich will, dass dieser Modifier es ermöglicht, dass man auch TouchEvents auf der Ebene dann verarbeiten kann. Aktuell ist es so, dass die Notification, die wir z.B. damit nutzen, dass sie keine Touch-Events annimmt. Wir nutzen das Verfahren hier, da die in-app notifcations immer über allem sein müssen - auch Sheets. Sie sind aktuell schon über den Sheets in SwiftUI aber das Touch event geht einfach durch und es passiert nichts. Das würde ich gerne hier ändern. Auch die Previews hier in dem SDK zeigen nichts mehr an. Schaue auch nochmal in die Datei "AlwaysOnTopOverlay.md" um zu verstehen, wie wir das System nutzen wollen.
+
+
 public extension View {
     func alwaysOnTopOverlay<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
         modifier(AlwaysOnTopOverlayModifier(overlayContent: content))
@@ -93,14 +96,14 @@ private class AlwaysOnTopWindowManager {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopWindow: UIWindow {
-
+    
     override init(windowScene: UIWindowScene) {
         super.init(windowScene: windowScene)
-
+        
         self.windowLevel = .alert + 1
         self.backgroundColor = .clear
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
@@ -146,21 +149,21 @@ private final class AlwaysOnTopWindow: NSPanel {
 #if canImport(UIKit)
 @MainActor
 private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
-
+    
     override init(rootView: AnyView) {
         super.init(rootView: rootView)
-
+        
         let passThroughView = PassThroughView()
         passThroughView.translatesAutoresizingMaskIntoConstraints = false
         passThroughView.backgroundColor = .clear
-
+        
         // Wrap the hosting view
         let originalView = view!
         view = passThroughView
-
+        
         passThroughView.addSubview(originalView)
         originalView.translatesAutoresizingMaskIntoConstraints = false
-
+        
         NSLayoutConstraint.activate([
             originalView.topAnchor.constraint(equalTo: passThroughView.topAnchor),
             originalView.bottomAnchor.constraint(equalTo: passThroughView.bottomAnchor),
@@ -168,7 +171,7 @@ private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
             originalView.trailingAnchor.constraint(equalTo: passThroughView.trailingAnchor)
         ])
     }
-
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) not implemented")
     }
@@ -177,13 +180,13 @@ private final class AlwaysOnTopHostingController: UIHostingController<AnyView> {
 private class PassThroughView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hitView = super.hitTest(point, with: event)
-
+        
         // Nur im oberen Bereich (wo die Notification ist) Touches abfangen
         // Alles andere durchreichen
         if point.y > 200 {  // Unterhalb der Notification
             return nil
         }
-
+        
         return hitView
     }
 }
