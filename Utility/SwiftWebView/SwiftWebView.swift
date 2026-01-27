@@ -12,7 +12,7 @@ public struct SwiftWebView: View {
     var urlString: String
     var title: LocalizedStringKey
     
-    init(_ urlString: String, title: LocalizedStringKey) {
+    public init(_ urlString: String, title: LocalizedStringKey) {
         self.urlString = urlString
         self.title = title
     }
