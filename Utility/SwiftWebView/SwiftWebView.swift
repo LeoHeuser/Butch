@@ -9,31 +9,37 @@ import SwiftUI
 import WebKit
 
 public struct SwiftWebView: View {
-    private let urlString: String
+    var urlString: String
+    var title: LocalizedStringKey
     
-    public init(_ urlString: String) {
+    init(_ urlString: String, title: LocalizedStringKey) {
         self.urlString = urlString
+        self.title = title
     }
     
     public var body: some View {
-        Group {
-            if let url = URL(string: urlString) {
-                if #available(iOS 26.0, *) {
-                    WebView(url: url)
-                        .onOpenURL { url in
-                            UIApplication.shared.open(url)
-                        }
+        NavigationStack {
+            Group {
+                if let url = URL(string: urlString) {
+                    if #available(iOS 26.0, *) {
+                        WebView(url: url)
+                            .onOpenURL { url in
+                                UIApplication.shared.open(url)
+                            }
+                    } else {
+                        OldWebView(url: url)
+                    }
                 } else {
-                    OldWebView(url: url)
+                    // TODO: Hier nochmal eine richtige URL-Validierung einbauen. Wenn ich einen leeren String eingebe mit "" dann kommt der Fehler aber sobal dich nur schon "hallo" eingebe, dann kommt der Fehler nicht mehr. Das kann man noch verbessern an der Stelle.
+                    ContentUnavailableView(
+                        "Invalid URL",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text("The provided URL '\(urlString)' is not valid.")
+                    )
                 }
-            } else {
-                // TODO: Hier nochmal eine richtige URL-Validierung einbauen. Wenn ich einen leeren String eingebe mit "" dann kommt der Fehler aber sobal dich nur schon "hallo" eingebe, dann kommt der Fehler nicht mehr. Das kann man noch verbessern an der Stelle.
-                ContentUnavailableView(
-                    "Invalid URL",
-                    systemImage: "exclamationmark.triangle",
-                    description: Text("The provided URL '\(urlString)' is not valid.")
-                )
             }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -93,5 +99,5 @@ public struct OldWebView: UIViewRepresentable {
 }
 
 #Preview {
-    SwiftWebView("w")
+    SwiftWebView("www.apple.com", title: "Apple Website")
 }
