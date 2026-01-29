@@ -16,7 +16,7 @@ import AppKit
 #endif
 
 extension Color {
-
+    
     /// Creates a color that adapts to the current color scheme.
     /// - Parameters:
     ///   - light: Color for light appearance

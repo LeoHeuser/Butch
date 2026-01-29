@@ -1,9 +1,16 @@
 //
-//  sheetCloseButtonModifier.swift
+//  closeSheetButtonModifier.swift
 //  ButchSDK
 //
 //  Created by Leo Heuser on 25.01.26.
 //
+
+/**
+ 
+ # CloseSheetButtonModifier
+ Quite often a sheet itselfs need a close button to make it easily acessiboel for everyone to navigate within the views. Here the close CloseSheetButtonModifier helpts so that you do not need to redefine toolbars and dismiss buttons all the time.
+ 
+ */
 
 import SwiftUI
 

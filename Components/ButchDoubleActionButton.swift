@@ -77,7 +77,7 @@ private struct PrimaryButton: View {
                 Text(text)
                     .lineLimit(1)
             }
-            .font(.system(size: 16))
+            .font(.body)
             .frame(width: width, height: 60)
         }
         .foregroundStyle(Color.buttonForegroundInverted)
@@ -113,7 +113,7 @@ private struct SecondaryButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.body)
                 .frame(width: width, height: 60)
         }
         .foregroundStyle(Color.buttonForegroundPrimary)

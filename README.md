@@ -6,4 +6,4 @@ A lean SwiftUI component library extending native Apple platform patterns.
 
 ## Documentation
 
-All components, tokens, and usage examples are documented in `Documentation.docc`. Open the package in Xcode to access the full documentation.
+Each component or element in this SDK is documented in code.
