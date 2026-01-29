@@ -15,11 +15,16 @@
  - Configurable cache policy (bypasses cache by default for always-fresh content)
  - External links open in Safari automatically
  - Automatic URL validation with error handling
+ - Embedded in NavigationStack with inline title display
+ - Supports custom navigation title or automatic website title
  
  ## Usage
  ```swift
- // Basic usage (no JS, OS language, no cache)
+ // Basic usage - title from website
  StaticWebView("https://example.com/privacy")
+ 
+ // Custom navigation title
+ StaticWebView("apple.com/privacy", navigationTitle: "Privacy Policy")
  
  // URLs without scheme automatically get https:// prefix
  StaticWebView("apple.com/privacy")  // → https://apple.com/privacy
@@ -28,6 +33,7 @@
  // With custom options
  StaticWebView(
  "example.com",
+ navigationTitle: "Terms",
  useAppLanguage: true,
  allowsJavaScript: true,
  cachePolicy: .useProtocolCachePolicy
@@ -54,50 +60,53 @@ public struct StaticWebView: View {
     let useAppLanguage: Bool
     let allowsJavaScript: Bool
     let cachePolicy: URLRequest.CachePolicy
-    
+    let navigationTitle: LocalizedStringKey?
+    let showDismissButton: Bool
+
+    @State private var pageTitle: String = ""
+
     public init(
         _ url: String,
+        navigationTitle: LocalizedStringKey? = nil,
         useAppLanguage: Bool = false,
         allowsJavaScript: Bool = false,
-        cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalAndRemoteCacheData,
+        showDismissButton: Bool = false
     ) {
         self.url = url
+        self.navigationTitle = navigationTitle
         self.useAppLanguage = useAppLanguage
         self.allowsJavaScript = allowsJavaScript
         self.cachePolicy = cachePolicy
+        self.showDismissButton = showDismissButton
     }
     
     public var body: some View {
         if let validUrl = normalizedURL(from: url) {
-            StaticWebViewRepresentable(
-                url: validUrl,
-                useAppLanguage: useAppLanguage,
-                allowsJavaScript: allowsJavaScript,
-                cachePolicy: cachePolicy
-            )
-        } else {
-            VStack {
-                Spacer()
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
-                Spacer()
+            NavigationStack {
+                StaticWebViewRepresentable(
+                    url: validUrl,
+                    useAppLanguage: useAppLanguage,
+                    allowsJavaScript: allowsJavaScript,
+                    cachePolicy: cachePolicy,
+                    pageTitle: $pageTitle
+                )
+                .navigationTitle(navigationTitle.map { Text($0) } ?? Text(pageTitle))
+                .navigationBarTitleDisplayMode(.inline)
             }
+        } else {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
     
     private func normalizedURL(from urlString: String) -> URL? {
-        // Check if URL contains at least one dot (valid domain)
         guard urlString.contains(".") else { return nil }
-        
-        // Try parsing as-is first (for URLs with http/https)
-        if let url = URL(string: urlString),
-           let scheme = url.scheme,
-           ["http", "https"].contains(scheme) {
+        if let url = URL(string: urlString), url.scheme == "http" || url.scheme == "https" {
             return url
         }
-        
-        // No valid scheme? Add https:// prefix for security
         return URL(string: "https://" + urlString)
     }
 }
@@ -109,6 +118,7 @@ private struct StaticWebViewRepresentable: UIViewRepresentable {
     let useAppLanguage: Bool
     let allowsJavaScript: Bool
     let cachePolicy: URLRequest.CachePolicy
+    @Binding var pageTitle: String
     @Environment(\.openURL) private var openURL
     
     func makeUIView(context: Context) -> WKWebView {
@@ -118,30 +128,24 @@ private struct StaticWebViewRepresentable: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         
-        var request = URLRequest(url: url)
-        request.cachePolicy = cachePolicy
+        var request = URLRequest(url: url, cachePolicy: cachePolicy)
+        let languages = useAppLanguage ? Bundle.main.preferredLocalizations : Locale.preferredLanguages
+        request.setValue(languages.joined(separator: ", "), forHTTPHeaderField: "Accept-Language")
         
-        // Set Accept-Language header based on language preferences
-        let preferredLanguages: [String]
-        if useAppLanguage {
-            preferredLanguages = Bundle.main.preferredLocalizations
-        } else {
-            preferredLanguages = Locale.preferredLanguages
-        }
-        let acceptLanguage = preferredLanguages.joined(separator: ", ")
-        request.setValue(acceptLanguage, forHTTPHeaderField: "Accept-Language")
-        
+        webView.addObserver(context.coordinator, forKeyPath: "title", options: .new, context: nil)
         webView.load(request)
         
         return webView
     }
     
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        // Intentionally empty - URL is static and should not change after initial load
-    }
+    func updateUIView(_ webView: WKWebView, context: Context) {}
     
     func makeCoordinator() -> NavigationHandler {
-        NavigationHandler(allowedUrl: url, openURL: openURL)
+        NavigationHandler(allowedUrl: url, openURL: openURL, pageTitle: $pageTitle)
+    }
+    
+    static func dismantleUIView(_ webView: WKWebView, coordinator: NavigationHandler) {
+        webView.removeObserver(coordinator, forKeyPath: "title")
     }
 }
 
@@ -151,22 +155,32 @@ private struct StaticWebViewRepresentable: UIViewRepresentable {
 final class NavigationHandler: NSObject, WKNavigationDelegate {
     private let allowedUrl: URL
     private let openURL: OpenURLAction
+    @Binding private var pageTitle: String
     
-    init(allowedUrl: URL, openURL: OpenURLAction) {
+    init(allowedUrl: URL, openURL: OpenURLAction, pageTitle: Binding<String>) {
         self.allowedUrl = allowedUrl
         self.openURL = openURL
+        self._pageTitle = pageTitle
         super.init()
     }
     
-    private func isSameDomain(_ url1: URL, _ url2: URL) -> Bool {
-        let host1 = normalizedHost(from: url1)
-        let host2 = normalizedHost(from: url2)
-        return host1 == host2 && !host1.isEmpty
+    override nonisolated func observeValue(
+        forKeyPath keyPath: String?,
+        of object: Any?,
+        change: [NSKeyValueChangeKey: Any]?,
+        context: UnsafeMutableRawPointer?
+    ) {
+        if keyPath == "title", let webView = object as? WKWebView {
+            Task { @MainActor in pageTitle = webView.title ?? "" }
+        }
     }
     
-    private func normalizedHost(from url: URL) -> String {
-        guard let host = url.host?.lowercased() else { return "" }
-        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    private func isSameDomain(_ url1: URL, _ url2: URL) -> Bool {
+        func normalizedHost(_ url: URL) -> String {
+            url.host?.lowercased().replacingOccurrences(of: "^www\\.", with: "", options: .regularExpression) ?? ""
+        }
+        let host1 = normalizedHost(url1)
+        return !host1.isEmpty && host1 == normalizedHost(url2)
     }
     
     func webView(
@@ -174,43 +188,37 @@ final class NavigationHandler: NSObject, WKNavigationDelegate {
         decidePolicyFor navigationAction: WKNavigationAction
     ) async -> WKNavigationActionPolicy {
         guard let requestUrl = navigationAction.request.url else { return .cancel }
+        guard webView.url != nil else { return .allow }
         
-        // Allow initial load
-        if webView.url == nil {
-            return .allow
+        if navigationAction.navigationType == .linkActivated, !isSameDomain(requestUrl, allowedUrl) {
+            openURL(requestUrl)
+            return .cancel
         }
         
-        // Open user-activated links (clicks) in Safari if they navigate away
-        if navigationAction.navigationType == .linkActivated {
-            if !isSameDomain(requestUrl, allowedUrl) {
-                openURL(requestUrl)
-                return .cancel
-            }
-        }
-        
-        // Allow all other navigation (redirects, form submissions, etc.)
         return .allow
     }
 }
 
 // MARK: - Preview
 
-#Preview("With https://") {
+#Preview("Default (Website Title)") {
     StaticWebView("https://www.apple.com/privacy")
 }
 
-#Preview("Without https://") {
-    StaticWebView("apple.com/privacy")
+#Preview("Custom Title") {
+    StaticWebView("apple.com/privacy", navigationTitle: "Privacy Policy")
 }
 
 #Preview("Invalid URL") {
     StaticWebView("wrong")
 }
 
-#Preview("With Options") {
+#Preview("With All Options") {
     StaticWebView(
         "example.com",
+        navigationTitle: "Terms & Conditions",
         useAppLanguage: true,
-        allowsJavaScript: true
+        allowsJavaScript: true,
+        cachePolicy: .useProtocolCachePolicy
     )
 }
