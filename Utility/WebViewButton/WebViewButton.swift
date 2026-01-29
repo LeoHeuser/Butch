@@ -21,7 +21,7 @@ public struct WebViewButton: View {
     let systemImage: String?
     let urls: [Locale.LanguageCode: String]
     let fallback: Locale.LanguageCode
-
+    
     @State private var showingWebView = false
     
     // MARK: - Initializer
@@ -49,15 +49,59 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            StaticWebView(title, urls: urls, fallback: fallback)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("button.close") {
-                            showingWebView = false
-                        }
+            WebViewSheet(
+                title: title,
+                urls: urls,
+                fallback: fallback,
+                isPresented: $showingWebView
+            )
+        }
+    }
+}
+
+// MARK: - WebView Sheet
+
+private struct WebViewSheet: View {
+    let title: LocalizedStringKey
+    let urls: [Locale.LanguageCode: String]
+    let fallback: Locale.LanguageCode
+    @Binding var isPresented: Bool
+    
+    private var resolvedUrl: String {
+        let currentLanguage = Locale.current.language.languageCode ?? fallback
+        return urls[currentLanguage] ?? urls[fallback] ?? ""
+    }
+    
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let url = URL(string: resolvedUrl) {
+                    StaticWebView(url: url)
+                } else {
+                    InvalidURLView()
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("button.close") {
+                        isPresented = false
                     }
                 }
+            }
         }
+    }
+}
+
+// MARK: - Invalid URL View
+
+private struct InvalidURLView: View {
+    var body: some View {
+        ContentUnavailableView(
+            "error.invalidUrl",
+            systemImage: "exclamationmark.bubble"
+        )
     }
 }
 
