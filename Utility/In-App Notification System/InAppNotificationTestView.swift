@@ -8,6 +8,9 @@
 import SwiftUI
 
 public struct InAppNotificationTestView: View {
+    // MARK: Init
+    public init() {}
+    
     // MARK: Parameters
     @Environment(InAppNotificationService.self) private var inAppNotification
     

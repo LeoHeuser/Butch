@@ -31,7 +31,7 @@ public class InAppNotificationService {
         currentNotification = notification
         
         Task {
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(10))
             if currentNotification?.title == notification.title {
                 currentNotification = nil
             }
@@ -50,22 +50,17 @@ private struct InAppNotificationOverlayContent: View {
     @Environment(InAppNotificationService.self) private var service
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                if let notification = service.currentNotification {
-                    InAppNotificationComponent(notification: notification)
-                        .padding(.top)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .zIndex(1)
-                }
-                
-                // Expliziter transparenter Bereich der Touches NICHT abfängt
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .allowsHitTesting(false)
+        VStack(spacing: 0) {
+            if let notification = service.currentNotification {
+                InAppNotificationComponent(notification: notification)
+                    .padding(12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
+            
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .allowsHitTesting(service.currentNotification != nil)
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: service.currentNotification != nil)
     }
 }

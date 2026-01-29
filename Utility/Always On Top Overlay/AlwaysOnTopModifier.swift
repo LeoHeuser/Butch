@@ -17,9 +17,6 @@ import AppKit
 
 // MARK: - Public API
 
-// TODO: Das geht hier nicht mehr. Wenn ich das nun in meine App einbaue, dann ist alles nur noch schwarz, aber die App Stürtzt nicht ab; sondern man sieht nur nichts mehr. Ich will, dass dieser Modifier es ermöglicht, dass man auch TouchEvents auf der Ebene dann verarbeiten kann. Aktuell ist es so, dass die Notification, die wir z.B. damit nutzen, dass sie keine Touch-Events annimmt. Wir nutzen das Verfahren hier, da die in-app notifcations immer über allem sein müssen - auch Sheets. Sie sind aktuell schon über den Sheets in SwiftUI aber das Touch event geht einfach durch und es passiert nichts. Das würde ich gerne hier ändern. Auch die Previews hier in dem SDK zeigen nichts mehr an. Schaue auch nochmal in die Datei "AlwaysOnTopOverlay.md" um zu verstehen, wie wir das System nutzen wollen.
-
-
 public extension View {
     func alwaysOnTopOverlay<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
         modifier(AlwaysOnTopOverlayModifier(overlayContent: content))
@@ -31,11 +28,35 @@ public extension View {
 struct AlwaysOnTopOverlayModifier<OverlayContent: View>: ViewModifier {
     let overlayContent: () -> OverlayContent
     
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .onAppear {
-                AlwaysOnTopWindowManager.shared.registerContent(overlayContent)
-            }
+        if isPreview {
+            // Fallback für Previews: Nutze normales SwiftUI Overlay
+            content
+                .overlay(alignment: .top) {
+                    overlayContent()
+                }
+        } else {
+#if canImport(UIKit) || canImport(AppKit)
+            // Window-basierter Modus (nur außerhalb von Previews)
+            content
+                .onAppear {
+                    AlwaysOnTopWindowManager.shared.registerContent(overlayContent)
+                }
+                .onDisappear {
+                    AlwaysOnTopWindowManager.shared.unregisterContent()
+                }
+#else
+            content
+                .overlay(alignment: .top) {
+                    overlayContent()
+                }
+#endif
+        }
+    }
+    
+    private var isPreview: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     }
 }
 
@@ -55,7 +76,29 @@ private class AlwaysOnTopWindowManager {
     func registerContent<Content: View>(_ content: @escaping () -> Content) {
 #if canImport(UIKit) || canImport(AppKit)
         ensureWindowExists()
-        hostingController?.rootView = AnyView(content())
+        
+        // Wrapper View die Visibility managed
+        let wrappedContent = ContentWrapper(content: content) { hasContent in
+            self.updateWindowVisibility(hasContent: hasContent)
+        }
+        
+        hostingController?.rootView = AnyView(wrappedContent)
+#endif
+    }
+    
+    func unregisterContent() {
+#if canImport(UIKit) || canImport(AppKit)
+        hostingController?.rootView = AnyView(Color.clear)
+        updateWindowVisibility(hasContent: false)
+#endif
+    }
+    
+    private func updateWindowVisibility(hasContent: Bool) {
+#if canImport(UIKit)
+        overlayWindow?.isUserInteractionEnabled = hasContent
+        // Window bleibt sichtbar aber nicht interaktiv wenn leer
+#elseif canImport(AppKit)
+        overlayWindow?.ignoresMouseEvents = !hasContent
 #endif
     }
     
@@ -83,11 +126,45 @@ private class AlwaysOnTopWindowManager {
 #if canImport(UIKit)
         window.rootViewController = controller
         window.isHidden = false
+        window.isUserInteractionEnabled = false // Initial aus
 #elseif canImport(AppKit)
         window.contentViewController = controller
         window.orderFront(nil)
+        window.ignoresMouseEvents = true // Initial aus
 #endif
 #endif
+    }
+}
+
+// MARK: - Content Wrapper
+
+private struct ContentWrapper<Content: View>: View {
+    let content: () -> Content
+    let onVisibilityChange: (Bool) -> Void
+    
+    @State private var hasVisibleContent = false
+    
+    var body: some View {
+        content()
+            .background(
+                GeometryReader { geometry in
+                    Color.clear
+                        .onAppear {
+                            checkVisibility(size: geometry.size)
+                        }
+                        .onChange(of: geometry.size) { oldValue, newValue in
+                            checkVisibility(size: newValue)
+                        }
+                }
+            )
+    }
+    
+    private func checkVisibility(size: CGSize) {
+        let isVisible = size.width > 0 && size.height > 0
+        if isVisible != hasVisibleContent {
+            hasVisibleContent = isVisible
+            onVisibilityChange(isVisible)
+        }
     }
 }
 
@@ -135,11 +212,38 @@ private final class AlwaysOnTopWindow: NSPanel {
     override func hitTest(_ point: NSPoint) -> NSView? {
         let hitView = super.hitTest(point)
         
+        // Wenn wir die contentView selbst getroffen haben (transparenter Background), durchreichen
         if hitView == self.contentView {
             return nil
         }
         
+        // Prüfe ob wir einen transparenten SwiftUI View getroffen haben
+        if let view = hitView, isTransparentView(view) {
+            return nil
+        }
+        
         return hitView
+    }
+    
+    private func isTransparentView(_ view: NSView) -> Bool {
+        // Prüfe ob die View transparent ist und keine interaktiven Subviews hat
+        if view.layer?.backgroundColor != nil && view.layer?.backgroundColor != NSColor.clear.cgColor {
+            return false
+        }
+        
+        // Wenn die View GestureRecognizers hat, ist sie interaktiv
+        if !view.gestureRecognizers.isEmpty {
+            return false
+        }
+        
+        // Prüfe ob irgendwelche Subviews interaktiv sind
+        for subview in view.subviews {
+            if !isTransparentView(subview) {
+                return false
+            }
+        }
+        
+        return true
     }
 }
 #endif
@@ -181,13 +285,41 @@ private class PassThroughView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hitView = super.hitTest(point, with: event)
         
-        // Nur im oberen Bereich (wo die Notification ist) Touches abfangen
-        // Alles andere durchreichen
-        if point.y > 200 {  // Unterhalb der Notification
+        // Wenn wir uns selbst oder die Hosting-View getroffen haben (transparenter Background),
+        // dann Touch durchreichen
+        if hitView == self || hitView?.backgroundColor == .clear && hitView?.subviews.isEmpty == true {
             return nil
         }
         
+        // Wenn der Hit nur auf einem SwiftUI Background View ist, durchreichen
+        // SwiftUI Views die nur .clear sind sollten nicht Touches abfangen
+        if let hostingView = hitView, isTransparentSwiftUIView(hostingView) {
+            return nil
+        }
+        
+        // Ansonsten haben wir tatsächlichen Content getroffen
         return hitView
+    }
+    
+    private func isTransparentSwiftUIView(_ view: UIView) -> Bool {
+        // Prüfe ob die View transparent ist und keine interaktiven Subviews hat
+        guard view.backgroundColor == .clear || view.backgroundColor == nil else {
+            return false
+        }
+        
+        // Wenn die View einen GestureRecognizer hat, ist sie interaktiv
+        if let gestureRecognizers = view.gestureRecognizers, !gestureRecognizers.isEmpty {
+            return false
+        }
+        
+        // Prüfe ob irgendwelche Subviews interaktiv sind
+        for subview in view.subviews {
+            if !isTransparentSwiftUIView(subview) {
+                return false
+            }
+        }
+        
+        return true
     }
 }
 #endif

@@ -21,14 +21,8 @@ public struct WebViewButton: View {
     let systemImage: String?
     let urls: [Locale.LanguageCode: String]
     let fallback: Locale.LanguageCode
-    
+
     @State private var showingWebView = false
-    
-    /// Resolves the URL based on the current app language.
-    private var resolvedUrl: String {
-        let currentLanguage = Locale.current.language.languageCode ?? fallback
-        return urls[currentLanguage] ?? urls[fallback] ?? ""
-    }
     
     // MARK: - Initializer
     public init(
@@ -55,108 +49,14 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            WebViewSheet(title: title, urlString: resolvedUrl, isPresented: $showingWebView)
-        }
-    }
-}
-
-// MARK: - WebView Sheet
-
-private struct WebViewSheet: View {
-    let title: LocalizedStringKey
-    let urlString: String
-    @Binding var isPresented: Bool
-    
-    private var url: URL? {
-        URL(string: urlString)
-    }
-    
-    var body: some View {
-        NavigationStack {
-            Group {
-                if let url {
-                    StaticWebView(url: url)
-                } else {
-                    InvalidURLView()
-                }
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("button.close") {
-                        isPresented = false
+            StaticWebView(title, urls: urls, fallback: fallback)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("button.close") {
+                            showingWebView = false
+                        }
                     }
                 }
-            }
-        }
-    }
-}
-
-// MARK: - Invalid URL View
-
-private struct InvalidURLView: View {
-    var body: some View {
-        ContentUnavailableView(
-            "error.invalidUrl",
-            systemImage: "exclamationmark.bubble"
-        )
-    }
-}
-
-// MARK: - Static WebView
-
-private struct StaticWebView: UIViewRepresentable {
-    let url: URL
-    @Environment(\.openURL) private var openURL
-    
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.defaultWebpagePreferences.allowsContentJavaScript = false
-        
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = context.coordinator
-        
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        webView.load(request)
-        
-        return webView
-    }
-    
-    func updateUIView(_ webView: WKWebView, context: Context) {}
-    
-    func makeCoordinator() -> NavigationHandler {
-        NavigationHandler(allowedUrl: url, openURL: openURL)
-    }
-}
-
-// MARK: - Navigation Handler
-
-@MainActor
-private final class NavigationHandler: NSObject, WKNavigationDelegate {
-    let allowedUrl: URL
-    let openURL: OpenURLAction
-    
-    init(allowedUrl: URL, openURL: OpenURLAction) {
-        self.allowedUrl = allowedUrl
-        self.openURL = openURL
-        super.init()
-    }
-    
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction
-    ) async -> WKNavigationActionPolicy {
-        guard let requestUrl = navigationAction.request.url else { return .cancel }
-        
-        let isAllowed = requestUrl.host == allowedUrl.host && requestUrl.path == allowedUrl.path
-        
-        if isAllowed {
-            return .allow
-        } else {
-            openURL(requestUrl)
-            return .cancel
         }
     }
 }
