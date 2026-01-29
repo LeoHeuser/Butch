@@ -5,22 +5,44 @@
 //  Created by Leo Heuser on 26.05.25.
 //
 
+/**
+ A button that presents web content in a sheet using StaticWebView.
+ 
+ ## Features
+ - Displays web content in a modal sheet
+ - Automatically handles language detection via Accept-Language headers
+ - Auto-adds https:// prefix to URLs without scheme
+ - Optional icon support with SF Symbols
+ - Configurable JavaScript, language, and cache settings
+ 
+ ## Usage
+ ```swift
+ // Simple usage (auto-adds https://)
+ WebViewButton("Privacy", url: "apple.com/privacy")
+ 
+ // With icon
+ WebViewButton("Support", systemImage: "questionmark.circle", url: "example.com/support")
+ 
+ // With custom settings
+ WebViewButton(
+ "Help",
+ url: "example.com/help",
+ useAppLanguage: true,
+ allowsJavaScript: true
+ )
+ ```
+ */
+
 import SwiftUI
-import WebKit
-
-// MARK: - Locale.LanguageCode Extension
-
-public extension Locale.LanguageCode {
-    static let en = Self("en")
-    static let de = Self("de")
-}
 
 public struct WebViewButton: View {
     // MARK: - Properties
     let title: LocalizedStringKey
     let systemImage: String?
-    let urls: [Locale.LanguageCode: String]
-    let fallback: Locale.LanguageCode
+    let url: String
+    let useAppLanguage: Bool
+    let allowsJavaScript: Bool
+    let cachePolicy: URLRequest.CachePolicy
     
     @State private var showingWebView = false
     
@@ -28,13 +50,17 @@ public struct WebViewButton: View {
     public init(
         _ title: LocalizedStringKey,
         systemImage: String? = nil,
-        urls: [Locale.LanguageCode: String],
-        fallback: Locale.LanguageCode
+        url: String,
+        useAppLanguage: Bool = false,
+        allowsJavaScript: Bool = false,
+        cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalAndRemoteCacheData
     ) {
         self.title = title
         self.systemImage = systemImage
-        self.urls = urls
-        self.fallback = fallback
+        self.url = url
+        self.useAppLanguage = useAppLanguage
+        self.allowsJavaScript = allowsJavaScript
+        self.cachePolicy = cachePolicy
     }
     
     // MARK: - View
@@ -49,59 +75,18 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            WebViewSheet(
-                title: title,
-                urls: urls,
-                fallback: fallback,
-                isPresented: $showingWebView
-            )
-        }
-    }
-}
-
-// MARK: - WebView Sheet
-
-private struct WebViewSheet: View {
-    let title: LocalizedStringKey
-    let urls: [Locale.LanguageCode: String]
-    let fallback: Locale.LanguageCode
-    @Binding var isPresented: Bool
-    
-    private var resolvedUrl: String {
-        let currentLanguage = Locale.current.language.languageCode ?? fallback
-        return urls[currentLanguage] ?? urls[fallback] ?? ""
-    }
-    
-    var body: some View {
-        NavigationStack {
-            Group {
-                if let url = URL(string: resolvedUrl) {
-                    StaticWebView(url: url)
-                } else {
-                    InvalidURLView()
-                }
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("button.close") {
-                        isPresented = false
-                    }
-                }
+            NavigationStack {
+                StaticWebView(
+                    url,
+                    useAppLanguage: useAppLanguage,
+                    allowsJavaScript: allowsJavaScript,
+                    cachePolicy: cachePolicy
+                )
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .sheetDismissButton()
             }
         }
-    }
-}
-
-// MARK: - Invalid URL View
-
-private struct InvalidURLView: View {
-    var body: some View {
-        ContentUnavailableView(
-            "error.invalidUrl",
-            systemImage: "exclamationmark.bubble"
-        )
     }
 }
 
@@ -110,22 +95,21 @@ private struct InvalidURLView: View {
 #Preview {
     Form {
         WebViewButton(
-            "button.legal.imprint",
-            urls: [
-                .en: "https://www.apple.com",
-                .de: "https://www.apple.com/de"
-            ],
-            fallback: .en
+            "Imprint",
+            url: "apple.com"
         )
         
         WebViewButton(
-            "button.legal.privacy",
+            "Privacy",
             systemImage: "lock.shield",
-            urls: [
-                .en: "https://www.apple.com/privacy",
-                .de: "https://www.apple.com/de/privacy"
-            ],
-            fallback: .en
+            url: "apple.com/privacy"
+        )
+        
+        WebViewButton(
+            "Support (with JS)",
+            systemImage: "questionmark.circle",
+            url: "apple.com/support",
+            allowsJavaScript: true
         )
     }
 }
