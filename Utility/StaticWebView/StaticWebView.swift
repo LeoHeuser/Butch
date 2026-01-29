@@ -104,14 +104,23 @@ private final class NavigationHandler: NSObject, WKNavigationDelegate {
     ) async -> WKNavigationActionPolicy {
         guard let requestUrl = navigationAction.request.url else { return .cancel }
 
-        let isAllowed = requestUrl.host == allowedUrl.host && requestUrl.path == allowedUrl.path
-
-        if isAllowed {
+        // Allow initial load
+        if webView.url == nil {
             return .allow
-        } else {
-            openURL(requestUrl)
-            return .cancel
         }
+
+        // Open user-activated links (clicks) in Safari if they navigate away
+        if navigationAction.navigationType == .linkActivated {
+            let isSameHost = requestUrl.host == allowedUrl.host
+
+            if !isSameHost {
+                openURL(requestUrl)
+                return .cancel
+            }
+        }
+
+        // Allow all other navigation (redirects, form submissions, etc.)
+        return .allow
     }
 }
 
