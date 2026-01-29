@@ -61,24 +61,21 @@ public struct StaticWebView: View {
     let allowsJavaScript: Bool
     let cachePolicy: URLRequest.CachePolicy
     let navigationTitle: LocalizedStringKey?
-    let showDismissButton: Bool
-
+    
     @State private var pageTitle: String = ""
-
+    
     public init(
         _ url: String,
         navigationTitle: LocalizedStringKey? = nil,
         useAppLanguage: Bool = false,
         allowsJavaScript: Bool = false,
-        cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalAndRemoteCacheData,
-        showDismissButton: Bool = false
+        cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalAndRemoteCacheData
     ) {
         self.url = url
         self.navigationTitle = navigationTitle
         self.useAppLanguage = useAppLanguage
         self.allowsJavaScript = allowsJavaScript
         self.cachePolicy = cachePolicy
-        self.showDismissButton = showDismissButton
     }
     
     public var body: some View {
