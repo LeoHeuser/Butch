@@ -15,7 +15,7 @@
  - Configurable cache policy (bypasses cache by default for always-fresh content)
  - External links open in Safari automatically
  - Automatic URL validation with error handling
- - Embedded in NavigationStack with inline title display
+ - Designed to be used within a NavigationStack for title display
  - Supports custom navigation title or automatic website title
  
  ## Usage
@@ -80,17 +80,15 @@ public struct StaticWebView: View {
     
     public var body: some View {
         if let validUrl = normalizedURL(from: url) {
-            NavigationStack {
-                StaticWebViewRepresentable(
-                    url: validUrl,
-                    useAppLanguage: useAppLanguage,
-                    allowsJavaScript: allowsJavaScript,
-                    cachePolicy: cachePolicy,
-                    pageTitle: $pageTitle
-                )
-                .navigationTitle(navigationTitle.map { Text($0) } ?? Text(pageTitle))
-                .navigationBarTitleDisplayMode(.inline)
-            }
+            StaticWebViewRepresentable(
+                url: validUrl,
+                useAppLanguage: useAppLanguage,
+                allowsJavaScript: allowsJavaScript,
+                cachePolicy: cachePolicy,
+                pageTitle: $pageTitle
+            )
+            .navigationTitle(navigationTitle.map { Text($0) } ?? Text(pageTitle))
+            .navigationBarTitleDisplayMode(.inline)
         } else {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
@@ -199,11 +197,15 @@ final class NavigationHandler: NSObject, WKNavigationDelegate {
 // MARK: - Preview
 
 #Preview("Default (Website Title)") {
-    StaticWebView("https://www.apple.com/privacy")
+    NavigationStack {
+        StaticWebView("https://www.apple.com/privacy")
+    }
 }
 
 #Preview("Custom Title") {
-    StaticWebView("apple.com/privacy", navigationTitle: "Privacy Policy")
+    NavigationStack {
+        StaticWebView("apple.com/privacy", navigationTitle: "Privacy Policy")
+    }
 }
 
 #Preview("Invalid URL") {
@@ -211,11 +213,13 @@ final class NavigationHandler: NSObject, WKNavigationDelegate {
 }
 
 #Preview("With All Options") {
-    StaticWebView(
-        "example.com",
-        navigationTitle: "Terms & Conditions",
-        useAppLanguage: true,
-        allowsJavaScript: true,
-        cachePolicy: .useProtocolCachePolicy
-    )
+    NavigationStack {
+        StaticWebView(
+            "example.com",
+            navigationTitle: "Terms & Conditions",
+            useAppLanguage: true,
+            allowsJavaScript: true,
+            cachePolicy: .useProtocolCachePolicy
+        )
+    }
 }

@@ -75,14 +75,16 @@ public struct WebViewButton: View {
             }
         }
         .sheet(isPresented: $showingWebView) {
-            StaticWebView(
-                url,
-                navigationTitle: title,
-                useAppLanguage: useAppLanguage,
-                allowsJavaScript: allowsJavaScript,
-                cachePolicy: cachePolicy
-            )
-            .sheetDismissButton()
+            NavigationStack {
+                StaticWebView(
+                    url,
+                    navigationTitle: title,
+                    useAppLanguage: useAppLanguage,
+                    allowsJavaScript: allowsJavaScript,
+                    cachePolicy: cachePolicy
+                )
+                .sheetDismissButton()
+            }
         }
     }
 }
