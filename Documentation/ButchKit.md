@@ -43,6 +43,7 @@ Every type is documented in code. This is the map.
 - `WebViewButton` — a button that presents one.
 - `View.sheetDismissButton()` — a native close button for sheets.
 - `View.useContentHeightPresentationDetent` — sizes a sheet to its content.
+- `View.onShake(isEnabled:respectsShakeToUndoSetting:perform:)` — runs an action when the device is shaken (iOS only).
 
 ### Token utility
 
