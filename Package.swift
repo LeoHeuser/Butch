@@ -1,5 +1,10 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
+//
+// ButchKit deliberately targets the current Swift toolchain rather than the widest one. The
+// concrete cost today is the `@concurrent` attribute (SE-0461) in LogExport: it changes nothing
+// under 6.2's defaults, but it keeps the "never runs on the caller's actor" guarantee true once
+// the language adopts caller-inherited isolation for `nonisolated async` in Swift 7.
 
 import PackageDescription
 
