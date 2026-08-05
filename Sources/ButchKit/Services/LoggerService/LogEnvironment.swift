@@ -8,13 +8,13 @@
 import SwiftUI
 
 private struct LoggerServiceKey: EnvironmentKey {
-    static let defaultValue = LoggerService.shared
+    static let defaultValue = LoggerService()
 }
 
 public extension EnvironmentValues {
     /// The ``LoggerService`` for this view hierarchy.
     ///
-    /// Works without any setup — it defaults to ``LoggerService/shared``:
+    /// Works without any setup — it defaults to a service on this target's own subsystem:
     ///
     /// ```swift
     /// nonisolated extension LogCategory {

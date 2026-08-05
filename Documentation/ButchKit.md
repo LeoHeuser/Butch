@@ -20,7 +20,8 @@ Every type is documented in code. This is the map.
 
 `Sources/ButchKit/Services/LoggerService/`
 
-- `LoggerService` — vends `os.Logger` instances, resolves the subsystem once.
+- `Logger.init(category:subsystem:)` — how an app declares a category. Resolves the subsystem itself.
+- `LoggerService` — binds a group of loggers to one subsystem, for app extensions, tests and export.
 - `LogCategory` — the area of the app a message belongs to.
 - `LogSession` — a short identifier that ties one flow together across categories.
 - `LogExport`, `LogEntry`, `LogLevel` — reading the app's own logs back for a bug report.

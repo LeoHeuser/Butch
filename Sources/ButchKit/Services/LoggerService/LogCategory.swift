@@ -20,7 +20,7 @@ import Foundation
 /// // LoggerCategories.swift
 /// nonisolated extension Logger {
 ///     /// Capture session, recording lifecycle, and saving to Photos.
-///     static let camera = LoggerService.shared["Camera"]
+///     static let camera = Logger(category: "Camera")
 /// }
 /// ```
 ///

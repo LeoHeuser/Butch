@@ -37,13 +37,15 @@ import OSLog
 
 nonisolated extension Logger {
     /// Capture session, recording lifecycle, and saving to Photos.
-    static let camera   = LoggerService.shared["Camera"]
+    static let camera   = Logger(category: "Camera")
     /// Audio session configuration and microphone selection.
-    static let audio    = LoggerService.shared["Audio"]
+    static let audio    = Logger(category: "Audio")
     /// Entitlement checks and paywall decisions.
-    static let purchase = LoggerService.shared["Purchase"]
+    static let purchase = Logger(category: "Purchase")
 }
 ```
+
+`Logger(category:)` resolves the subsystem from the bundle identifier, so there is nothing to pass and nothing to keep in sync. A target that has to log under someone else's subsystem — an app extension filing under its host app — names it: `Logger(category: "Camera", subsystem: "com.host.app")`.
 
 Write the doc comment. It is what lets the next person — or the next agent — pick the right category instead of inventing a near-duplicate. A console filter full of `Camera`, `Capture` and `Recording` is how that goes wrong.
 
@@ -73,6 +75,27 @@ The stem describes the event and never changes between calls, which is what make
 `os.Logger` splits this interpolation into static text and arguments by itself. You get the benefits of structured logging while writing what looks like ordinary interpolation.
 
 Interpolated values must be `CustomStringConvertible`. Numbers, strings and durations are; struct types like `CGSize` are not. Log their parts as separate fields — which reads better anyway — or convert with `String(describing:)`.
+
+### Logging a property from inside a class
+
+`os.Logger` takes each interpolated value as an `@autoclosure @escaping` closure, so it can skip the work entirely when the message is dropped. Escaping closures that capture `self` in a class or actor need `self.` spelled out, so this does not compile inside one:
+
+```swift
+// error: reference to property 'micFollowsCamera' in closure requires explicit
+//        use of 'self' to make capture semantics explicit
+Logger.audio.error("Microphone stays on the system default: requested=\(micFollowsCamera ? "system" : "front", privacy: .public)")
+```
+
+Writing `self.micFollowsCamera` silences it. Binding the value first is the better fix: the line gets shorter, the ternary stops competing with the message for attention, and there is no `self.` noise in the middle of the text.
+
+```swift
+let requested = micFollowsCamera ? "system" : "front"
+Logger.audio.error("Microphone stays on the system default: requested=\(requested, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+```
+
+Keep the value inside the interpolation, with `self.`, only when producing it is genuinely expensive and the message might be dropped. A local is computed either way; the interpolation is not. That case is rare — most logged values are counters, codes and flags.
+
+Structs are unaffected, and so are locals such as a `catch` binding. Only stored properties of a class or actor need this.
 
 Formatting belongs inside the interpolation, never in a string you build beforehand:
 
@@ -294,7 +317,8 @@ A compact checklist for anyone — human or AI — writing log statements in a B
 
 - Never use `print` or `NSLog` for diagnostics. Always `os.Logger`.
 - Declare categories only in `LoggerCategories.swift`, as `static let` on `Logger`, each with a `///` comment saying what it covers. Never add one anywhere else.
-- Never call `LoggerService.shared[…]` inside a loop or a hot path.
+- Never build a logger — `Logger(category:)` or `service[…]` — inside a loop or a hot path.
+- Inside a class or actor, bind a property to a local before logging it, rather than writing `self.` inside the interpolation.
 - Constant stem first, then `key=value` fields. One line per message.
 - Never mark a value `public` if it can contain user data.
 - Use `notice` or higher for anything that must be visible in the field.

@@ -8,12 +8,20 @@ struct LoggerServiceTests {
     @Test("Resolves a non-empty subsystem by default")
     func defaultSubsystem() {
         #expect(!LoggerService().subsystem.isEmpty)
-        #expect(!LoggerService.shared.subsystem.isEmpty)
     }
 
     @Test("Uses an explicit subsystem when given one")
     func explicitSubsystem() {
         #expect(LoggerService(subsystem: "design.heuser.Test").subsystem == "design.heuser.Test")
+    }
+
+    /// Two default services must be interchangeable. The environment default and every
+    /// `LogExport` default argument construct their own, and an export that resolved a different
+    /// subsystem than the loggers did would come back empty with nothing to warn about it.
+    @Test("Makes every default service equal to every other")
+    func defaultServicesAreInterchangeable() {
+        #expect(LoggerService() == LoggerService())
+        #expect(LoggerService().subsystem == LoggerService(subsystem: nil).subsystem)
     }
 }
 
@@ -87,6 +95,23 @@ struct LogExportTests {
         let found = try #require(match, "The marker message was not read back from the log store.")
         #expect(found.category == "RoundTrip")
         #expect(found.level == .notice)
+    }
+
+    /// `Logger` exposes neither its subsystem nor its category, so writing a message and reading it
+    /// back is the only way to prove `Logger(category:subsystem:)` files it where it claims to.
+    @Test("Files a logger built from a category in that subsystem and category")
+    func loggerCategoryInit() async throws {
+        let probe = Probe("Init")
+        Logger(category: "Init", subsystem: probe.service.subsystem)
+            .notice("Logger init: marker=\(probe.marker, privacy: .public)")
+
+        let match = try await waitForResult {
+            try await LogExport.entries(since: probe.start, from: probe.service)
+                .first { $0.message.contains(probe.marker) }
+        }
+
+        let found = try #require(match, "The marker message was not read back from the log store.")
+        #expect(found.category == "Init")
     }
 
     @Test("Renders entries as one line each")

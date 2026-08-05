@@ -8,46 +8,44 @@
 import Foundation
 import OSLog
 
-/// Vends `os.Logger` instances for an app, with the subsystem resolved once.
+/// Binds a group of loggers to one subsystem.
 ///
-/// The service does not wrap `os.Logger`, it hands you the real thing. That is deliberate:
-/// privacy annotations (`privacy: .public`) and lazy formatting only work on `os.Logger`'s own
-/// string interpolation. Any wrapper taking a plain `String` would eagerly build the message and
-/// log every value in the clear.
-///
-/// ## Setup
-///
-/// Declare the app's categories in one dedicated file, `LoggerCategories.swift`. That file is the
-/// registry: the single place a category comes into existence, and where you say what it covers.
-/// There is nothing to call at launch.
+/// Most code never names this type. To declare a category, ask `Logger` for one —
+/// `Logger(category:)` resolves the subsystem for you:
 ///
 /// ```swift
 /// // LoggerCategories.swift
 /// nonisolated extension Logger {
 ///     /// Capture session, recording lifecycle, and saving to Photos.
-///     static let camera = LoggerService.shared["Camera"]
+///     static let camera = Logger(category: "Camera")
 ///     /// Audio session configuration and microphone selection.
-///     static let audio  = LoggerService.shared["Audio"]
+///     static let audio  = Logger(category: "Audio")
 /// }
 /// ```
 ///
-/// `nonisolated` is required once a project sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`:
-/// without it the loggers belong to the main actor and cannot be read from a background queue.
-/// One keyword on the extension covers the whole file, and needs Swift 6.1 or newer.
-///
-/// ## Writing a message
+/// The service exists for the cases where the subsystem is not the target's own: an app extension
+/// filing under its host app, a test writing into a subsystem nothing else touches, and
+/// ``LogExport``, which filters by subsystem and so has to be told which one to read.
 ///
 /// ```swift
-/// Logger.camera.notice("Recording started: fps=\(fps, privacy: .public)")
-/// Logger.camera.error("Capture start failed: code=\(code, privacy: .public) op=startRecording")
+/// let host = LoggerService(subsystem: "com.host.app")
+/// host["Camera"].notice("Recording started")
+/// let report = try await LogExport.text(since: .now.addingTimeInterval(-3600), from: host)
 /// ```
 ///
-/// Interpolated values must be `CustomStringConvertible`. Types like `CGSize` are not, so pass
-/// their parts (`width=`, `height=`) or convert with `String(describing:)`.
+/// It is also the value behind `EnvironmentValues.log`, which is how a view reaches a logger
+/// without a static.
 ///
-/// Hold the `Logger` in a `let` as shown above rather than calling ``subscript(_:)`` inside a
-/// loop. The subscript is evaluated before the runtime checks whether the level is enabled, so a
-/// per-frame `LoggerService.shared["Camera"].debug(…)` pays for a logger it then throws away.
+/// A service is a value, not a shared instance: `LoggerService()` is cheap, constructing two of
+/// them costs nothing, and two with the same subsystem are equal. There is nothing to configure at
+/// launch and no bootstrap step that could be missed.
+///
+/// ## Why it hands back a real `os.Logger`
+///
+/// The service does not wrap `os.Logger`, it hands you the real thing. That is deliberate: privacy
+/// annotations (`privacy: .public`) and lazy formatting only work on `os.Logger`'s own string
+/// interpolation. Any wrapper taking a plain `String` would eagerly build the message and log
+/// every value in the clear.
 ///
 /// See `Documentation/LoggingStrategy.md` for what to log, at which level, and how to word it.
 /// `Equatable` because the service lives in `EnvironmentValues`: SwiftUI uses `==` for change
@@ -58,30 +56,31 @@ public struct LoggerService: Sendable, Equatable {
 
     /// Creates a service.
     ///
-    /// - Parameter subsystem: The subsystem to log under. Defaults to the main bundle
-    ///   identifier, which is the right choice for an app. Pass a value only when a target
-    ///   should log under a different subsystem than its own bundle — for example an app
-    ///   extension that belongs to a host app.
-    ///
-    /// Bundles without an identifier — a command-line tool, a test bundle without a host app —
-    /// fall back to the process name, so the logs still belong to the program that wrote them
-    /// rather than to ButchKit.
+    /// - Parameter subsystem: The subsystem to log under. Defaults to the target's own bundle
+    ///   identifier, which is the right choice for an app. Pass a value only when a target should
+    ///   log under a different subsystem than its own bundle — for example an app extension that
+    ///   belongs to a host app.
     public init(subsystem: String? = nil) {
-        self.subsystem = subsystem
-        ?? Bundle.main.bundleIdentifier
-        ?? ProcessInfo.processInfo.processName
+        self.subsystem = subsystem ?? Self.defaultSubsystem
     }
 
     /// A logger for the given category.
+    ///
+    /// Hold the result in a `let` rather than calling this inside a loop. The subscript runs
+    /// before the runtime checks whether the level is enabled, so a per-frame
+    /// `service["Camera"].debug(…)` pays for a logger it then throws away.
     public subscript(_ category: LogCategory) -> Logger {
         Logger(subsystem: subsystem, category: category.name)
     }
 
-    /// The process-wide service, using the main bundle identifier as its subsystem.
+    /// The subsystem a target logs under when it does not name one: its own bundle identifier.
     ///
-    /// Immutable on purpose, so it is safe to read from any isolation domain and there is no
-    /// configuration step that could be missed. The unified logging system keeps one object per
-    /// subsystem and category forever, so a subsystem that changes mid-process would leave
-    /// unreachable entries behind.
-    public static let shared = LoggerService()
+    /// Bundles without an identifier — a command-line tool, a test bundle without a host app —
+    /// fall back to the process name, so the logs still belong to the program that wrote them
+    /// rather than to ButchKit.
+    ///
+    /// Resolved once. The unified logging system keeps one object per subsystem and category
+    /// forever, so a subsystem that changed mid-process would leave unreachable entries behind.
+    static let defaultSubsystem: String =
+        Bundle.main.bundleIdentifier ?? ProcessInfo.processInfo.processName
 }

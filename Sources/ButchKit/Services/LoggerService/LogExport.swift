@@ -116,7 +116,7 @@ public enum LogExport {
     @concurrent
     public static func entries(
         since date: Date,
-        from service: LoggerService = .shared
+        from service: LoggerService = LoggerService()
     ) async throws -> [LogEntry] {
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let position = store.position(date: date)
@@ -150,7 +150,7 @@ public enum LogExport {
     @concurrent
     public static func text(
         since date: Date,
-        from service: LoggerService = .shared
+        from service: LoggerService = LoggerService()
     ) async throws -> String {
         render(try await entries(since: date, from: service))
     }
@@ -190,7 +190,7 @@ public enum LogExport {
     @concurrent
     public static func fileURL(
         since date: Date,
-        from service: LoggerService = .shared
+        from service: LoggerService = LoggerService()
     ) async throws -> URL {
         let entries = try await entries(since: date, from: service)
         guard !entries.isEmpty else { throw LogExportError.noEntries }
