@@ -11,6 +11,7 @@ Platform support: iOS/iPadOS 17.0+ and macOS 14.0+. Builds with Swift 6.2 or new
 Prose that applies across the library. These are binding for how we build, not descriptions of what exists.
 
 - [Logging Strategy](LoggingStrategy.md) — where, what, and at which level we log.
+- [Paywall](Paywall.md) — how an app sells its subscription: setup, gating, presenting, analytics.
 
 ## What's in the library
 
@@ -34,6 +35,18 @@ Every type is documented in code. This is the map.
 - `UFEService` — collects errors from anywhere and surfaces them through one native alert.
 - `UFError`, `UFErrorLevel` — the shape an error needs to be presentable.
 - `View.userFacingErrors(_:)` — root-level integration.
+
+### Paywall
+
+`Sources/ButchKit/Services/PaywallService/`
+
+- `View.paywallEnvironment(_:features:)` — root-level integration. Creates the service, injects it and attaches the paywall sheet.
+- `PaywallService` — `hasSubscription`, fed by StoreKit 2, plus `present(source:)` and `require(source:_:)` to show the paywall from anywhere.
+- `PaywallConfiguration` — the subscription group and policy URLs.
+- `PayWallFeature` — one marketing page: title, description, image.
+- `PaywallEvent` — the funnel, forwarded through `PaywallService.onEvent` to the app's analytics.
+- `PaywallRequest` — the presentation in flight.
+- `View.paywallSheet()` — reinforcement for views that are themselves sheets.
 
 ### General utility
 
