@@ -15,11 +15,14 @@ struct PaywallView: View {
 
     @Environment(PaywallService.self) private var paywall
     @State private var showsPurchaseFailedAlert = false
+    /// The paywall's own height, measured on the sheet. The marketing pages take a share of it as
+    /// their minimum height; see ``PaywallMarketingContent``.
+    @State private var paywallHeight: CGFloat = 0
 
     var body: some View {
         NavigationStack {
             SubscriptionStoreView(groupID: paywall.configuration.subscriptionGroupID, visibleRelationships: .all) {
-                PaywallMarketingContent(features: paywall.features)
+                PaywallMarketingContent(features: paywall.features, availableHeight: paywallHeight)
             }
             // Apple's cancellation button shrinks the content container, banding the full-bleed
             // photos off at the top. The toolbar button below does the same job without the inset.
@@ -27,7 +30,11 @@ struct PaywallView: View {
             .storeButton(.visible, for: .restorePurchases)
             .storeButton(paywall.configuration.hasPolicies ? .visible : .hidden, for: .policies)
             .subscriptionStoreButtonLabel(.action)
-            .subscriptionStoreControlStyle(.buttons)
+            // StoreKit is the only thing that knows the group, so it counts the tiers itself:
+            // one plan gets a single action button, several get a picker over one Subscribe
+            // button. `.buttons` was fixed here and forced a full-width button per tier,
+            // which crushed the marketing pages above it.
+            .subscriptionStoreControlStyle(.automatic)
             .policyDestination(for: .privacyPolicy, url: paywall.configuration.privacyPolicyURL, title: "webView.privacyPolicy.title")
             .policyDestination(for: .termsOfService, url: paywall.configuration.termsOfServiceURL, title: "webView.termsOfUse.title")
             .onInAppPurchaseStart { _ in
@@ -52,6 +59,17 @@ struct PaywallView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             #endif
             .sheetDismissButton()
+        }
+        // Measured out here rather than inside: the sheet's height is the same whatever
+        // SubscriptionStoreView does with its own layout, and it does not shift when the
+        // modifiers above are reordered.
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    .onChange(of: geometry.size.height, initial: true) { _, newHeight in
+                        paywallHeight = newHeight
+                    }
+            }
         }
         // The marketing pages put uncolored text on full-bleed photos shot for a dark ground,
         // so the paywall stays dark regardless of the device appearance.
