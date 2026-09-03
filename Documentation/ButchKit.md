@@ -46,6 +46,7 @@ Every type is documented in code. This is the map.
 - `PayWallFeature` — one marketing page: title, description, image.
 - `PaywallEvent` — the funnel, forwarded through `PaywallService.onEvent` to the app's analytics.
 - `PaywallRequest` — the presentation in flight.
+- `PaywallStatusRow` — the settings row: subscription status and management, or the offer.
 - `View.paywallSheet()` — reinforcement for views that are themselves sheets.
 
 ### General utility

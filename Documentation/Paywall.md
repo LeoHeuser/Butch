@@ -21,6 +21,7 @@ The paywall is not a place for experiments. If the layout has to change, it chan
 | **`PaywallService`** | `hasSubscription`, plus `present` and `require` to show the paywall | ButchKit, created by the root modifier |
 | **`PaywallEvent`** | The funnel: presented, purchase started, completed, pending, failed | ButchKit reports, you forward to analytics |
 | **`PaywallRequest`** | The presentation in flight, carrying its `source` | ButchKit |
+| **`PaywallStatusRow`** | The settings row: status and management, or the offer | ButchKit |
 
 Entitlement is decided per **subscription group**, not per product. Every tier in the group unlocks the app. Adding a monthly tier next to the yearly one is an App Store Connect change, not a code change.
 
@@ -132,6 +133,29 @@ SwiftUI presents one sheet per view. While a Settings sheet is open, the root sh
 
 Views pushed onto a `NavigationStack` need nothing. Only full sheets and covers do.
 
+### The settings row
+
+Every app needs one place that says what the user is paying for. Apple expects a path to the
+system's subscription management, and a subscriber who cannot find out what they bought writes
+to support instead of looking it up.
+
+```swift
+Form {
+    CloudStatus()
+
+    Section {
+        PaywallStatusRow(source: "settings")
+    }
+
+    LegalInfo()
+}
+```
+
+One row, two states, both of which lead somewhere: a subscriber gets the way into the system's
+management, everybody else gets the offer through `present`. Nothing to configure and no state
+to pass in. On iOS the management opens as `manageSubscriptionsSheet`; on macOS, which has no
+such sheet, the button opens the App Store's subscription page.
+
 ## What the user sees
 
 The paywall is fixed. For every app:
@@ -197,6 +221,9 @@ ButchKit ships no strings. Every key resolves in the app's own string catalog, s
 | `webView.privacyPolicy.title` | Navigation title of the privacy policy page |
 | `webView.termsOfUse.title` | Navigation title of the terms page |
 | `button.dismissSheet` | The close button, shared with `View.sheetDismissButton()` |
+| `paywall.status.subscribed` | The settings row's label while subscribed, usually the plan's name |
+| `paywall.status.unsubscribed` | The settings row while not subscribed, which opens the paywall |
+| `button.manageSubscription` | The settings row's way into the system's subscription management |
 
 Product names and prices come from App Store Connect, localized per storefront. Never hardcode a price in a marketing page.
 
