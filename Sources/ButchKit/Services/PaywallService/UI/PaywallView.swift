@@ -106,3 +106,21 @@ private extension View {
         }
     }
 }
+
+// The subscription button loads from `ButchKitPreview.storekit` when that file is selected as
+// the scheme's StoreKit configuration. Without it Apple's store view stays in its loading state.
+#Preview("With photos") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .preview, features: .previewFeatures))
+}
+
+#Preview("Text only") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .preview, features: .previewFeaturesWithoutPhotos))
+}
+
+// All four page shapes in one set, so the jump between the two layouts is visible while swiping.
+#Preview("Mixed") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .preview, features: .previewFeaturesMixed))
+}

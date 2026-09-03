@@ -54,55 +54,21 @@ struct PaywallMarketingContent: View {
     }
 }
 
-/// One page: title and description at the bottom, the photo fading out behind them.
-struct PaywallFeaturePage: View {
-    let feature: PayWallFeature
-
-    var body: some View {
-        VStack {
-            Spacer()
-
-            VStack(spacing: 16) {
-                Text(feature.title)
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                Text(feature.description)
-                    .font(.headline)
-            }
-            .multilineTextAlignment(.center)
-            .padding(32)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 32)
-        .background {
-            PaywallBackgroundImage(image: feature.image)
-        }
-    }
+#Preview("With photos") {
+    PaywallMarketingContent(features: .previewFeatures)
+        // Stands in for the inset SubscriptionStoreView gives its marketing content.
+        .padding(.horizontal, 16)
+        .paywallPreviewGround()
 }
 
-/// A full-bleed photo masked by a gradient over its lower part, so text stays legible on it.
-struct PaywallBackgroundImage: View {
-    var image: ImageResource
-    var gradientHeight: CGFloat = 0.62
+#Preview("Text only") {
+    PaywallMarketingContent(features: .previewFeaturesWithoutPhotos)
+        .padding(.horizontal, 16)
+        .paywallPreviewGround()
+}
 
-    var body: some View {
-        GeometryReader { proxy in
-            Image(image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: proxy.size.width, height: proxy.size.height)
-                .clipped()
-                .mask {
-                    LinearGradient(
-                        stops: [
-                            .init(color: .white, location: 1 - gradientHeight),
-                            .init(color: .clear, location: 1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
-        }
-    }
+#Preview("Mixed") {
+    PaywallMarketingContent(features: .previewFeaturesMixed)
+        .padding(.horizontal, 16)
+        .paywallPreviewGround()
 }

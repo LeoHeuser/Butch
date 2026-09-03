@@ -21,7 +21,15 @@ let package = Package(
         )
     ],
     targets: [
-        .target(name: "ButchKit"),
+        .target(
+            name: "ButchKit",
+            // Belongs to the paywall previews, but is a scheme file rather than a bundle resource.
+            exclude: ["Services/PaywallService/Preview/ButchKitPreview.storekit"],
+            resources: [
+                // Placeholder photos for the paywall previews, see PaywallPreviewData.swift.
+                .process("Services/PaywallService/Preview/PaywallPreviewAssets.xcassets")
+            ]
+        ),
         .testTarget(
             name: "ButchKitTests",
             dependencies: ["ButchKit"]

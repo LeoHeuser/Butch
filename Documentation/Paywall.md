@@ -17,7 +17,7 @@ The paywall is not a place for experiments. If the layout has to change, it chan
 | Part | Meaning | Who decides |
 |---|---|---|
 | **`PaywallConfiguration`** | The subscription group and the two policy URLs | You, once per app |
-| **`PayWallFeature`** | One marketing page: title, description, image | You, once per app, as many as you like |
+| **`PayWallFeature`** | One marketing page: a title, plus an optional description and photo | You, once per app, as many as you like |
 | **`PaywallService`** | `hasSubscription`, plus `present` and `require` to show the paywall | ButchKit, created by the root modifier |
 | **`PaywallEvent`** | The funnel: presented, purchase started, completed, pending, failed | ButchKit reports, you forward to analytics |
 | **`PaywallRequest`** | The presentation in flight, carrying its `source` | ButchKit |
@@ -53,6 +53,8 @@ let paywallFeatures: [PayWallFeature] = [
                    image: .payWallFeature2),
 ]
 ```
+
+Only the title is required. Leave out `image` and the page shows its text centred on the paywall's dark ground; leave out `description` and the title stands on its own. A page with a photo keeps its text at the bottom, where the photo has faded out.
 
 Then one modifier on the root view, above everything that might gate a feature or show the paywall:
 
@@ -135,7 +137,7 @@ Views pushed onto a `NavigationStack` need nothing. Only full sheets and covers 
 The paywall is fixed. For every app:
 
 - Photo pages from `paywallFeatures`, swipeable, advancing every five seconds, pausing for fifteen after a swipe. Page dots are always visible.
-- Title in `.title.bold`, description in `.headline`, centered at the bottom over a gradient that fades the photo out.
+- Title in `.title.bold`, description in `.headline`. On a page with a photo the text sits at the bottom, over a gradient that fades the photo out; on a page without one it centres.
 - Apple's subscription buttons below, one per tier, with the introductory offer shown by StoreKit itself.
 - Restore Purchases, and Privacy Policy plus Terms of Service when both URLs are configured. Policies open in `StaticWebView` inside the sheet.
 - A close button in the toolbar. Dark appearance regardless of the device setting.

@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// One marketing page on the paywall: a full-bleed photo with a title and a line of text.
+/// One marketing page on the paywall: a title, optionally a line of text, optionally a full-bleed
+/// photo behind both.
 ///
 /// Declare the pages once, next to the configuration, and pass them to
 /// `View.paywallEnvironment(_:features:)`. The paywall shows them as swipeable pages that
@@ -18,9 +19,11 @@ import SwiftUI
 ///     PayWallFeature(title: "paywall.feature.1.title",
 ///                    description: "paywall.feature.1.description",
 ///                    image: .payWallFeature1),
+///     // A page with no photo, on the paywall's dark ground:
 ///     PayWallFeature(title: "paywall.feature.2.title",
-///                    description: "paywall.feature.2.description",
-///                    image: .payWallFeature2),
+///                    description: "paywall.feature.2.description"),
+///     // A headline on its own:
+///     PayWallFeature(title: "paywall.feature.3.title"),
 /// ]
 /// ```
 ///
@@ -29,10 +32,16 @@ import SwiftUI
 public struct PayWallFeature: Identifiable {
     public let id = UUID()
     public let title: LocalizedStringKey
-    public let description: LocalizedStringKey
-    public let image: ImageResource
-
-    public init(title: LocalizedStringKey, description: LocalizedStringKey, image: ImageResource) {
+    /// The line below the title. `nil` shows the title on its own.
+    public let description: LocalizedStringKey?
+    /// The photo behind the text. `nil` leaves the paywall's dark ground bare.
+    public let image: ImageResource?
+    
+    public init(
+        title: LocalizedStringKey,
+        description: LocalizedStringKey? = nil,
+        image: ImageResource? = nil
+    ) {
         self.title = title
         self.description = description
         self.image = image
