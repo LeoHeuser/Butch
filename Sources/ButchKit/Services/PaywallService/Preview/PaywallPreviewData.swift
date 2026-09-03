@@ -8,9 +8,16 @@
 import SwiftUI
 
 extension PaywallConfiguration {
-    /// Points at the subscription group in `ButchKitPreview.storekit`, next to this file. Select it as
-    /// the scheme's StoreKit configuration and the paywall preview loads a real product.
+    /// One monthly subscription, the simplest paywall there is.
+    ///
+    /// Both groups live in the single `ButchKitPreview.storekit` next to this file. Only one
+    /// StoreKit configuration is ever active, so two files would mean only half the previews
+    /// could load; two groups in one file means every preview works at the same time.
     static let preview = PaywallConfiguration(subscriptionGroupID: "B07C4A12")
+
+    /// Monthly and yearly in one group, the yearly with a free week. Shows how the paywall lays
+    /// out more than one tier.
+    static let previewTiers = PaywallConfiguration(subscriptionGroupID: "B07C4A21")
 }
 
 extension ImageResource {

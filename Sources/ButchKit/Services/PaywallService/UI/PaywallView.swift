@@ -107,20 +107,38 @@ private extension View {
     }
 }
 
-// The subscription button loads from `ButchKitPreview.storekit` when that file is selected as
-// the scheme's StoreKit configuration. Without it Apple's store view stays in its loading state.
-#Preview("With photos") {
+// The subscription buttons load from `ButchKitPreview.storekit`, which has to be selected under
+// Product > Scheme > Edit Scheme > Run > Options. Xcode drops that reference when it rewrites the
+// scheme; re-add it there if a preview shows "Subscription Unavailable" instead of the buttons.
+#Preview("Photos (1)") {
     PaywallView(request: PaywallRequest(source: "preview"))
         .environment(PaywallService(configuration: .preview, features: .previewFeatures))
 }
 
-#Preview("Text only") {
+#Preview("Text (1)") {
     PaywallView(request: PaywallRequest(source: "preview"))
         .environment(PaywallService(configuration: .preview, features: .previewFeaturesWithoutPhotos))
 }
 
 // All four page shapes in one set, so the jump between the two layouts is visible while swiping.
-#Preview("Mixed") {
+#Preview("Mixed (1)") {
     PaywallView(request: PaywallRequest(source: "preview"))
         .environment(PaywallService(configuration: .preview, features: .previewFeaturesMixed))
+}
+
+// The same paywall against a group with two tiers. Both groups are in `ButchKitPreview.storekit`,
+// so these load alongside the three above with nothing to switch.
+#Preview("Photos (2)") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .previewTiers, features: .previewFeatures))
+}
+
+#Preview("Text (2)") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .previewTiers, features: .previewFeaturesWithoutPhotos))
+}
+
+#Preview("Mixed (2)") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .previewTiers, features: .previewFeaturesMixed))
 }

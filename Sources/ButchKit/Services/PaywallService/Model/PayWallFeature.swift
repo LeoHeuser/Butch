@@ -36,7 +36,7 @@ public struct PayWallFeature: Identifiable {
     public let description: LocalizedStringKey?
     /// The photo behind the text. `nil` leaves the paywall's dark ground bare.
     public let image: ImageResource?
-    
+
     public init(
         title: LocalizedStringKey,
         description: LocalizedStringKey? = nil,
