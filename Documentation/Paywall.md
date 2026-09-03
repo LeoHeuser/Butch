@@ -177,6 +177,32 @@ Not everything that needs a subscription belongs behind the paywall. The rule fr
 - **Hide** what would trap a free user. Rename and delete of their own data are hidden, not paywalled: deleting your only script and then being unable to create one is no reason to be sold a subscription.
 - **Read-only** instead of disabled. A locked text stays scrollable; a disabled `TextEditor` would make a long script unreadable.
 
+## The free tier
+
+What a non-subscriber may still do is a rule about **scope**, never a counter.
+
+Not "ten receipts free, then pay". A month is free and the year is paid; one project is free and
+the library is paid. A scope rule reads the data and answers. It stores nothing, so there is
+nothing to keep in step, nothing to migrate, and nothing that can drift out of agreement with
+what the user sees.
+
+- **Nothing is counted locally.** Not uses, launches, days, documents or exports. Anything a
+  reinstall can reset is not a paywall, and a meter that behaves differently on a second device
+  reads as a broken app rather than as a fair one.
+- **Trials come only from Apple's introductory offer.** Eligibility hangs on the Apple ID and
+  the subscription group, so deleting the app changes nothing and no app-side state is involved.
+  An app never invents a trial of its own.
+- **That eligibility is spent once.** A user who starts the trial at a moment the product cannot
+  prove itself has none left when it could. Cut the free tier so nobody needs the trial before
+  the paid thing is worth having.
+- **The free tier always reaches the user's own data.** An expired subscription may take features
+  away; it may never lock up what somebody put in. In practice the free scope is also the way
+  out, which is what keeps a lapsed subscriber from feeling held.
+
+The free scope itself is the app's, not ButchKit's: only the app knows what a meaningful
+narrower slice of its own subject is. ButchKit answers `hasSubscription`, and the app decides
+what the other answer still allows.
+
 ## Analytics
 
 ButchKit has no analytics dependency. Assign `onEvent` once, in the root view, and forward:
@@ -261,6 +287,8 @@ A compact checklist for anyone, human or AI, touching the paywall in a ButchKit 
 - Use `require(source:_:)` for actions, `present(source:)` for offers. Never declare a paywall sheet in a view.
 - Apply `.paywallSheet()` inside every sheet or cover that can trigger the paywall. Nothing on pushed views.
 - Hide what would trap a free user; paywall only what the subscription sells.
+- The free tier is a rule about scope, never a counter. Never store a use, day or document count.
+- Trials come from Apple's introductory offer only. Never build one out of `UserDefaults`.
 - Configure by subscription group, never by product identifier. Debug and Release group IDs differ.
 - Marketing pages are `PayWallFeature` values, never custom views. The layout is fixed in ButchKit.
 - All paywall strings are keys in the app's catalog, including the feature titles.
