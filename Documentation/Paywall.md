@@ -17,7 +17,7 @@ The paywall is not a place for experiments. If the layout has to change, it chan
 | Part | Meaning | Who decides |
 |---|---|---|
 | **`PaywallConfiguration`** | The subscription group and the two policy URLs | You, once per app |
-| **`PayWallFeature`** | One marketing page: a title, plus an optional description and photo | You, once per app, as many as you like |
+| **`PayWallFeature`** | One marketing page: a title, plus an optional description and photo | You, once per app, as many as you like, or none |
 | **`PaywallService`** | `hasSubscription`, plus `present` and `require` to show the paywall | ButchKit, created by the root modifier |
 | **`PaywallEvent`** | The funnel: presented, purchase started, completed, pending, failed | ButchKit reports, you forward to analytics |
 | **`PaywallRequest`** | The presentation in flight, carrying its `source` | ButchKit |
@@ -56,6 +56,15 @@ let paywallFeatures: [PayWallFeature] = [
 ```
 
 Only the title is required. Leave out `image` and the page shows its text centred on the paywall's dark ground; leave out `description` and the title stands on its own. A page with a photo keeps its text at the bottom, where the photo has faded out.
+
+The pages themselves are optional too. An app that has no marketing photos yet leaves `features` out entirely:
+
+```swift
+RootView()
+    .paywallEnvironment(paywallConfig)
+```
+
+Then the paywall shows Apple's own storefront instead: app icon, app name and the subscription group's description from App Store Connect, over the same subscription controls. Nothing to write and nothing to design, and it sells from the first build. An empty array does the same thing, so a `features` list that ends up empty is a valid state rather than a broken paywall.
 
 Then one modifier on the root view, above everything that might gate a feature or show the paywall:
 
@@ -168,6 +177,17 @@ The paywall is fixed. For every app:
 - On success the sheet closes on its own. On failure a native alert.
 
 Shoot or grade the photos for a dark ground; text is white on them.
+
+### Without pages
+
+With no `features`, the paywall hands the sheet to StoreKit:
+
+- Apple's own header: app icon, app name and the group's App Store Connect description. No swiping, no page dots.
+- The same subscription controls, Restore Purchases and policy buttons below it, behaving exactly as above.
+- The same close button in the same place.
+- Light or dark following the device, not forced dark: there is no photo to protect.
+
+Everything else is identical. The same events fire, the sheet closes on success the same way, and a later `features` list turns the photo layout on with no other change.
 
 ## Hiding or paywalling
 
@@ -291,6 +311,7 @@ A compact checklist for anyone, human or AI, touching the paywall in a ButchKit 
 - Trials come from Apple's introductory offer only. Never build one out of `UserDefaults`.
 - Configure by subscription group, never by product identifier. Debug and Release group IDs differ.
 - Marketing pages are `PayWallFeature` values, never custom views. The layout is fixed in ButchKit.
+- Pages are optional. With none, Apple's storefront takes over; never build a placeholder page to fill the gap.
 - All paywall strings are keys in the app's catalog, including the feature titles.
 - Forward `PaywallEvent` to analytics from one place. Never track a restore or renewal as a conversion.
 - Never add products other than auto-renewable subscriptions, a grace period, or network checks to the service.

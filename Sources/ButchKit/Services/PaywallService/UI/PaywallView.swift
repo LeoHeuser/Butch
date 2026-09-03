@@ -12,53 +12,58 @@ import SwiftUI
 /// root modifier, never by app code; see ``PaywallService/present(source:)``.
 struct PaywallView: View {
     let request: PaywallRequest
-
+    
     @Environment(PaywallService.self) private var paywall
     @State private var showsPurchaseFailedAlert = false
     /// The paywall's own height, measured on the sheet. The marketing pages take a share of it as
     /// their minimum height; see ``PaywallMarketingContent``.
     @State private var paywallHeight: CGFloat = 0
-
+    
+    /// Whether the app supplied marketing pages. Without them the paywall hands the whole sheet
+    /// to StoreKit, see ``storeView``.
+    private var hasFeatures: Bool { !paywall.features.isEmpty }
+    
     var body: some View {
         NavigationStack {
-            SubscriptionStoreView(groupID: paywall.configuration.subscriptionGroupID, visibleRelationships: .all) {
-                PaywallMarketingContent(features: paywall.features, availableHeight: paywallHeight)
-            }
+            storeView
             // Apple's cancellation button shrinks the content container, banding the full-bleed
             // photos off at the top. The toolbar button below does the same job without the inset.
-            .storeButton(.hidden, for: .cancellation)
-            .storeButton(.visible, for: .restorePurchases)
-            .storeButton(paywall.configuration.hasPolicies ? .visible : .hidden, for: .policies)
-            .subscriptionStoreButtonLabel(.action)
+                .storeButton(.hidden, for: .cancellation)
+                .storeButton(.visible, for: .restorePurchases)
+                .storeButton(paywall.configuration.hasPolicies ? .visible : .hidden, for: .policies)
+                .subscriptionStoreButtonLabel(.action)
             // StoreKit is the only thing that knows the group, so it counts the tiers itself:
             // one plan gets a single action button, several get a picker over one Subscribe
             // button. `.buttons` was fixed here and forced a full-width button per tier,
             // which crushed the marketing pages above it.
-            .subscriptionStoreControlStyle(.automatic)
-            .policyDestination(for: .privacyPolicy, url: paywall.configuration.privacyPolicyURL, title: "webView.privacyPolicy.title")
-            .policyDestination(for: .termsOfService, url: paywall.configuration.termsOfServiceURL, title: "webView.termsOfUse.title")
-            .onInAppPurchaseStart { _ in
-                paywall.report(.purchaseStarted(source: request.source))
-            }
-            .onInAppPurchaseCompletion { _, result in
-                handlePurchaseCompletion(result)
-            }
-            .alert("error.paywall.purchaseFailed.title", isPresented: $showsPurchaseFailedAlert) {
-            } message: {
-                Text("error.paywall.purchaseFailed.message")
-            }
-            .onChange(of: paywall.hasSubscription) { _, isActive in
-                // Covers purchase, restore and renewal alike: a restore never reaches
-                // onInAppPurchaseCompletion, it arrives through Transaction.updates.
-                if isActive {
-                    paywall.dismissPaywall()
+                .subscriptionStoreControlStyle(.automatic)
+                .policyDestination(for: .privacyPolicy, url: paywall.configuration.privacyPolicyURL, title: "webView.privacyPolicy.title")
+                .policyDestination(for: .termsOfService, url: paywall.configuration.termsOfServiceURL, title: "webView.termsOfUse.title")
+                .onInAppPurchaseStart { _ in
+                    paywall.report(.purchaseStarted(source: request.source))
                 }
-            }
-            .ignoresSafeArea(edges: .top)
-            #if os(iOS)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            #endif
-            .sheetDismissButton()
+                .onInAppPurchaseCompletion { _, result in
+                    handlePurchaseCompletion(result)
+                }
+                .alert("error.paywall.purchaseFailed.title", isPresented: $showsPurchaseFailedAlert) {
+                } message: {
+                    Text("error.paywall.purchaseFailed.message")
+                }
+                .onChange(of: paywall.hasSubscription) { _, isActive in
+                    // Covers purchase, restore and renewal alike: a restore never reaches
+                    // onInAppPurchaseCompletion, it arrives through Transaction.updates.
+                    if isActive {
+                        paywall.dismissPaywall()
+                    }
+                }
+            // Both only serve the photos: they run the pages up under the status bar. Apple's
+            // own header belongs inside the safe area, and it scrolls, so it needs the bar's
+            // material behind it or it slides under the close button.
+                .ignoresSafeArea(edges: hasFeatures ? .top : [])
+#if os(iOS)
+                .toolbarBackground(hasFeatures ? .hidden : .automatic, for: .navigationBar)
+#endif
+                .sheetDismissButton()
         }
         // Measured out here rather than inside: the sheet's height is the same whatever
         // SubscriptionStoreView does with its own layout, and it does not shift when the
@@ -72,15 +77,31 @@ struct PaywallView: View {
             }
         }
         // The marketing pages put uncolored text on full-bleed photos shot for a dark ground,
-        // so the paywall stays dark regardless of the device appearance.
-        .preferredColorScheme(.dark)
+        // so the paywall stays dark regardless of the device appearance. Without pages there is
+        // no photo to protect and Apple's storefront follows the device like any other sheet.
+        .preferredColorScheme(hasFeatures ? .dark : nil)
         // Outside the NavigationStack, so pushing a policy destination cannot fire this twice.
         // This is the funnel's denominator: without it the purchase count has no reference.
         .onAppear {
             paywall.report(.presented(source: request.source))
         }
     }
-
+    
+    /// Apple's `SubscriptionStoreView` in one of its two shapes. With pages it takes ours as its
+    /// marketing content; without, the init that has no content closure leaves StoreKit its own
+    /// header, which carries the app icon, the app name and the group's App Store Connect
+    /// description. An empty content closure would give neither, just a blank header.
+    @ViewBuilder
+    private var storeView: some View {
+        if hasFeatures {
+            SubscriptionStoreView(groupID: paywall.configuration.subscriptionGroupID, visibleRelationships: .all) {
+                PaywallMarketingContent(features: paywall.features, availableHeight: paywallHeight)
+            }
+        } else {
+            SubscriptionStoreView(groupID: paywall.configuration.subscriptionGroupID, visibleRelationships: .all)
+        }
+    }
+    
     private func handlePurchaseCompletion(_ result: Result<Product.PurchaseResult, any Error>) {
         switch result {
         case .success(let purchaseResult):
@@ -159,4 +180,16 @@ private extension View {
 #Preview("Mixed (2)") {
     PaywallView(request: PaywallRequest(source: "preview"))
         .environment(PaywallService(configuration: .previewTiers, features: .previewFeaturesMixed))
+}
+
+// No pages at all: the app never passed any, or passed an empty array. StoreKit takes the whole
+// sheet, and the paywall follows the device appearance rather than forcing its dark ground.
+#Preview("Empty (1)") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .preview))
+}
+
+#Preview("Empty (2)") {
+    PaywallView(request: PaywallRequest(source: "preview"))
+        .environment(PaywallService(configuration: .previewTiers))
 }

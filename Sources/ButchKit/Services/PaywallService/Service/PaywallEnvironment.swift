@@ -10,11 +10,11 @@ import SwiftUI
 /// Creates the service, injects it and attaches the paywall sheet at the root.
 struct PaywallEnvironmentModifier: ViewModifier {
     @State private var service: PaywallService
-
+    
     init(configuration: PaywallConfiguration, features: [PayWallFeature]) {
         _service = State(initialValue: PaywallService(configuration: configuration, features: features))
     }
-
+    
     func body(content: Content) -> some View {
         content
             .modifier(PaywallSheetModifier(isRoot: true))
@@ -30,9 +30,9 @@ struct PaywallEnvironmentModifier: ViewModifier {
 /// instance sees no request for as long as one is.
 struct PaywallSheetModifier: ViewModifier {
     let isRoot: Bool
-
+    
     @Environment(PaywallService.self) private var paywall
-
+    
     func body(content: Content) -> some View {
         content
             .sheet(
@@ -61,13 +61,23 @@ public extension View {
     ///     .paywallEnvironment(paywallConfig, features: paywallFeatures)
     /// ```
     ///
+    /// The pages are optional. Without them the paywall drops its own marketing content and shows
+    /// Apple's plain storefront, which brings the app icon, name and the group's App Store Connect
+    /// description with it:
+    ///
+    /// ```swift
+    /// RootView()
+    ///     .paywallEnvironment(paywallConfig)
+    /// ```
+    ///
     /// - Parameters:
     ///   - configuration: The subscription group and policy URLs.
-    ///   - features: The marketing pages the paywall shows, in order.
-    func paywallEnvironment(_ configuration: PaywallConfiguration, features: [PayWallFeature]) -> some View {
+    ///   - features: The marketing pages the paywall shows, in order. Leave them out and the
+    ///     paywall shows Apple's own storefront instead.
+    func paywallEnvironment(_ configuration: PaywallConfiguration, features: [PayWallFeature] = []) -> some View {
         modifier(PaywallEnvironmentModifier(configuration: configuration, features: features))
     }
-
+    
     /// Reinforcement for views that are themselves presented as a sheet.
     ///
     /// SwiftUI presents one sheet per view. While a Settings sheet is open, the root sheet cannot
