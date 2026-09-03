@@ -25,6 +25,11 @@
  ```
  Use the argumentless form only inside views that live below a view that already applied `.userFacingErrors(ufes)`, otherwise the environment lookup will trap at runtime.
  
+ ## Localization
+ The error's `title` and `message` are looked up in the app's `Errors.xcstrings`. The alert's OK
+ button is not: a button is a button wherever it appears, so `button.ok` stays on the default
+ table. See `StringTable`.
+ 
  */
 
 import SwiftUI
@@ -32,9 +37,20 @@ import SwiftUI
 struct UserFacingErrorsModifier: ViewModifier {
     @Environment(UFEService.self) private var ufes
     
+    /// The title has to exist before there is an error to take it from: it sits outside the
+    /// `presenting:` closure, unlike the message.
+    ///
+    /// Verbatim empty text rather than an empty key. An empty `LocalizedStringKey` is a real
+    /// catalog lookup, and it would land in the app's catalog as a string to translate.
+    private var title: Text {
+        guard let error = ufes.currentError else { return Text(verbatim: "") }
+        
+        return Text(error: error.title)
+    }
+    
     func body(content: Content) -> some View {
         content.alert(
-            ufes.currentError?.title ?? LocalizedStringKey(""),
+            title,
             isPresented: Binding(
                 get: { ufes.currentError != nil },
                 set: { isPresented in
@@ -43,10 +59,12 @@ struct UserFacingErrorsModifier: ViewModifier {
             ),
             presenting: ufes.currentError,
             actions: { _ in
+                // A button, not an error, so it stays on the default table even though it is
+                // the one thing in here the user reads after something went wrong.
                 Button("button.ok", role: .cancel) { ufes.dismiss() }
             },
             message: { error in
-                Text(error.message)
+                Text(error: error.message)
             }
         )
     }

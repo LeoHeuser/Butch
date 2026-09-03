@@ -29,6 +29,9 @@
  ufes.fault(title: "error.title.fault1", message: "error.message.fault1")
  ```
  
+ Both keys resolve in the app's `Errors.xcstrings`, at every level. The alert's own button does not:
+ `button.ok` is a button, so it stays on the default table. See `StringTable`.
+ 
  Services that throw their own `UFError` types can hand them in directly:
  ```swift
  ufes.report(MyDomainError.network(underlying: someError))

@@ -29,3 +29,10 @@ Each component or element in this SDK is documented in code.
 Prose that applies across the library lives in [`Documentation/`](Documentation/ButchKit.md):
 
 - [Logging Strategy](Documentation/LoggingStrategy.md) — where, what, and at which level we log.
+- [Paywall](Documentation/Paywall.md) — how an app sells its subscription: setup, gating, presenting, analytics.
+
+## Localization
+
+ButchKit ships no strings. Every key it renders resolves in your app's catalog, so a consuming app
+needs at least `Localizable.xcstrings` and `Errors.xcstrings` -- errors come from the second one.
+See [Localization](Documentation/ButchKit.md#localization) for which string goes where.

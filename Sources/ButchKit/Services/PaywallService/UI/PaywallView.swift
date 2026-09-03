@@ -45,9 +45,9 @@ struct PaywallView: View {
                 .onInAppPurchaseCompletion { _, result in
                     handlePurchaseCompletion(result)
                 }
-                .alert("error.paywall.purchaseFailed.title", isPresented: $showsPurchaseFailedAlert) {
+                .alert(Text(error: "error.paywall.purchaseFailed.title"), isPresented: $showsPurchaseFailedAlert) {
                 } message: {
-                    Text("error.paywall.purchaseFailed.message")
+                    Text(error: "error.paywall.purchaseFailed.message")
                 }
                 .onChange(of: paywall.hasSubscription) { _, isActive in
                     // Covers purchase, restore and renewal alike: a restore never reaches

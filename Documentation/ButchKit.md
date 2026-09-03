@@ -13,6 +13,27 @@ Prose that applies across the library. These are binding for how we build, not d
 - [Logging Strategy](LoggingStrategy.md) — where, what, and at which level we log.
 - [Paywall](Paywall.md) — how an app sells its subscription: setup, gating, presenting, analytics.
 
+## Localization
+
+ButchKit ships no strings. Every `LocalizedStringKey` it renders resolves in the consuming app's
+bundle, so the app owns the wording and the translations, and a ButchKit surface speaks every
+language the app does.
+
+Which catalog a key is looked up in depends on what the string is:
+
+| Table | For |
+|---|---|
+| `Localizable` | Everything by default, buttons included. SwiftUI's own default, so it is never named in code. |
+| `Errors` | Anything the user reads because something went wrong. Rendered with `Text(error:)`. |
+| `Accessibility` | Labels, hints and values only assistive technologies read. |
+
+An app adopting ButchKit therefore needs at least `Localizable.xcstrings` and `Errors.xcstrings`.
+A key looked up in the wrong table has no match and renders as the key itself, which is what the
+user then reads.
+
+A button stays on `Localizable` even when it sits in an alert: `button.ok` is a button, not an
+error. The table follows what the string *is*, not where it appears.
+
 ## What's in the library
 
 Every type is documented in code. This is the map.
@@ -58,6 +79,7 @@ Every type is documented in code. This is the map.
 - `View.sheetDismissButton()` — a native close button for sheets.
 - `View.useContentHeightPresentationDetent` — sizes a sheet to its content.
 - `View.onShake(isEnabled:respectsShakeToUndoSetting:perform:)` — runs an action when the device is shaken (iOS only).
+- `StringTable`, `Text.init(error:)` — which catalog a string resolves in.
 
 ### Token utility
 

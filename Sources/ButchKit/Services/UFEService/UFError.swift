@@ -12,7 +12,9 @@
  Services and views can throw or report values conforming to `UFError`, and the service takes care of logging and presenting a native alert.
  
  The protocol mirrors the native `Error` type but adds the information the UI needs:
- - `title` and `message` as `LocalizedStringKey` so strings live in the consuming app's catalog.
+ - `title` and `message` as `LocalizedStringKey` so strings live in the consuming app's catalog. Both
+   resolve in `Errors.xcstrings`: the alert renders them with `Text(error:)`, because everything
+   surfaced through this service is something the user reads after something went wrong.
  - `level` to map the error onto an `os.Logger` level and (later) onto presentation choices.
  - `error` to optionally carry the underlying technical error for logging.
  

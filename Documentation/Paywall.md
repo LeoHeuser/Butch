@@ -257,19 +257,20 @@ struct RootView: View {
 
 ## Localization
 
-ButchKit ships no strings. Every key resolves in the app's own string catalog, so the paywall speaks every language the app does. An app must define:
+ButchKit ships no strings. Every key resolves in the app's own string catalog, so the paywall speaks every language the app does. Which catalog depends on what the string is: the failure alert comes from `Errors.xcstrings`, everything else from the default `Localizable.xcstrings`. See [ButchKit.md](ButchKit.md#localization) for the rule. An app must define:
 
-| Key | Used for |
-|---|---|
-| `paywall.feature.n.title`, `paywall.feature.n.description` | Your pages, any keys you choose |
-| `error.paywall.purchaseFailed.title` | Alert title after a failed purchase |
-| `error.paywall.purchaseFailed.message` | Alert message after a failed purchase |
-| `webView.privacyPolicy.title` | Navigation title of the privacy policy page |
-| `webView.termsOfUse.title` | Navigation title of the terms page |
-| `button.dismissSheet` | The close button, shared with `View.sheetDismissButton()` |
-| `paywall.status.subscribed` | The settings row's label while subscribed, usually the plan's name |
-| `paywall.status.unsubscribed` | The settings row while not subscribed, which opens the paywall |
-| `button.manageSubscription` | The settings row's way into the system's subscription management |
+| Key | Table | Used for |
+|---|---|---|
+| `paywall.feature.n.title`, `paywall.feature.n.description` | `Localizable` | Your pages, any keys you choose |
+| `error.paywall.purchaseFailed.title` | `Errors` | Alert title after a failed purchase |
+| `error.paywall.purchaseFailed.message` | `Errors` | Alert message after a failed purchase |
+| `webView.privacyPolicy.title` | `Localizable` | Navigation title of the privacy policy page |
+| `webView.termsOfUse.title` | `Localizable` | Navigation title of the terms page |
+| `button.dismissSheet` | `Localizable` | The close button, shared with `View.sheetDismissButton()` |
+| `button.ok` | `Localizable` | The alert's own button, shared with `View.userFacingErrors(_:)` |
+| `paywall.status.subscribed` | `Localizable` | The settings row's label while subscribed, usually the plan's name |
+| `paywall.status.unsubscribed` | `Localizable` | The settings row while not subscribed, which opens the paywall |
+| `button.manageSubscription` | `Localizable` | The settings row's way into the system's subscription management |
 
 Product names and prices come from App Store Connect, localized per storefront. Never hardcode a price in a marketing page.
 
@@ -312,6 +313,6 @@ A compact checklist for anyone, human or AI, touching the paywall in a ButchKit 
 - Configure by subscription group, never by product identifier. Debug and Release group IDs differ.
 - Marketing pages are `PayWallFeature` values, never custom views. The layout is fixed in ButchKit.
 - Pages are optional. With none, Apple's storefront takes over; never build a placeholder page to fill the gap.
-- All paywall strings are keys in the app's catalog, including the feature titles.
+- All paywall strings are keys in the app's catalogs, including the feature titles. The two `error.paywall.*` keys live in `Errors.xcstrings`, everything else in `Localizable.xcstrings`.
 - Forward `PaywallEvent` to analytics from one place. Never track a restore or renewal as a conversion.
 - Never add products other than auto-renewable subscriptions, a grace period, or network checks to the service.
