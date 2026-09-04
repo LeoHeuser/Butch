@@ -46,7 +46,9 @@ Every type is documented in code. This is the map.
 - `LoggerService` — binds a group of loggers to one subsystem, for app extensions, tests and export.
 - `LogCategory` — the area of the app a message belongs to.
 - `LogSession` — a short identifier that ties one flow together across categories.
-- `LogExport`, `LogEntry`, `LogLevel` — reading the app's own logs back for a bug report.
+- `LogMirror`, `View.logMirror(_:)`, `EnvironmentValues.logMirror` — keeping the app's persisted logs across launches, and exporting them for a bug report.
+- `LogExport`, `LogEntry`, `LogLevel` — reading the running launch's own logs back, without a file behind them.
+- `Error.logCode` — `domain=… code=…` for a log line, in place of a description that may quote a file name.
 - `EnvironmentValues.log` — the logger inside a SwiftUI view.
 
 ### User-facing errors

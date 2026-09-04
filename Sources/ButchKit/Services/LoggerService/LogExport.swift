@@ -9,7 +9,7 @@ import Foundation
 import OSLog
 
 /// The importance of a log message, mirroring the levels of `os.Logger`.
-public enum LogLevel: String, Sendable {
+public enum LogLevel: String, Sendable, Codable {
     case debug
     case info
     case notice
@@ -30,6 +30,15 @@ public enum LogLevel: String, Sendable {
         default: self = .notice
         }
     }
+
+    /// Whether the system writes this level to disk. Only these survive in the field, and only
+    /// these are worth keeping across launches — see ``LogMirror``.
+    var isPersisted: Bool {
+        switch self {
+        case .debug, .info: false
+        case .notice, .error, .fault: true
+        }
+    }
 }
 
 /// What can go wrong while exporting.
@@ -37,8 +46,9 @@ public enum LogExportError: Error, LocalizedError {
     /// Nothing matched the requested window.
     ///
     /// The common causes are benign and worth telling the user about rather than handing them an
-    /// empty file: the app was relaunched, so the previous session's messages are out of reach,
-    /// or the target logs under a different subsystem than the one being read.
+    /// empty file: the window is too short, or the target logs under a different subsystem than
+    /// the one being read. Without a ``LogMirror`` a relaunch is a cause as well, since the live
+    /// store holds the current process only.
     case noEntries
 
     public var errorDescription: String? {
@@ -74,8 +84,7 @@ public struct LogEntry: Sendable, Identifiable {
     }
 }
 
-/// Reads this app's own log messages back from the system, for example to attach them to a
-/// bug report.
+/// Reads this app's own log messages back from the system, for the current launch only.
 ///
 /// ```swift
 /// let url = try await LogExport.fileURL(since: .now.addingTimeInterval(-3600))
@@ -88,20 +97,23 @@ public struct LogEntry: Sendable, Identifiable {
 ///
 /// ## What you get, and what you don't
 ///
-/// Two limits are worth knowing before building a feature on this:
-///
 /// - **Only the running launch.** The system scopes this to the current process. After the app
-///   is relaunched the process is a different one, so messages from before a crash are out of
-///   reach. Sending logs *while* a bug is happening works; sending them *after* a crash does not.
-/// - **`debug` and `info` are usually gone.** Those levels live in an in-memory buffer and are
-///   not written to disk. Expect `notice`, `error` and `fault` to be the levels that survive.
-///
-/// Together they sharpen the most important rule in `Documentation/LoggingStrategy.md`: anything you may need
-/// later has to be logged at `notice` or above.
+///   is relaunched the process is a different one, so everything before is out of reach. For a
+///   log that survives relaunches, and that is what a user sends days later, use ``LogMirror``;
+///   it persists these same entries and offers the same three shapes.
+/// - **`debug` is gone, `info` may not be.** `debug` lives in an in-memory buffer and is not
+///   handed back. `info` is, for the current process, even though the system never writes it to
+///   disk. Expect `notice`, `error` and `fault` to be the levels that matter.
+/// - **Everything is in the clear.** A process reading its own log sees values that were
+///   interpolated without a privacy annotation as written. Only an explicit `privacy: .private`
+///   or `.private(mask: .hash)` comes back redacted. The strategy's rule not to log user data at
+///   any level is what protects an export, not the default privacy.
 ///
 /// Every entry point is `@concurrent`, so none of this work can land on the caller's actor. A read
-/// takes on the order of a second even on a fast machine — plan for a progress state, not an
-/// instant tap.
+/// takes on the order of a second even on a fast machine, and for this scope the cost does not
+/// shrink with the window: the system ignores the requested position and hands back every entry
+/// of the process, which is why the date filter is applied here. Plan for a progress state, not
+/// an instant tap.
 public enum LogExport {
     /// Reads log entries written since the given date.
     ///
@@ -118,25 +130,7 @@ public enum LogExport {
         since date: Date,
         from service: LoggerService = LoggerService()
     ) async throws -> [LogEntry] {
-        let store = try OSLogStore(scope: .currentProcessIdentifier)
-        let position = store.position(date: date)
-        let predicate = NSPredicate(format: "subsystem == %@", service.subsystem)
-
-        var entries: [LogEntry] = []
-        for entry in try store.getEntries(with: [], at: position, matching: predicate) {
-            try Task.checkCancellation()
-            guard let entry = entry as? OSLogEntryLog else { continue }
-            entries.append(
-                LogEntry(
-                    date: entry.date,
-                    category: entry.category,
-                    level: LogLevel(entry.level),
-                    message: entry.composedMessage,
-                    id: entries.count
-                )
-            )
-        }
-        return entries
+        try await readEntries(since: date, from: service)
     }
 
     /// Reads log entries since the given date and renders them as plain text, one line each.
@@ -153,21 +147,6 @@ public enum LogExport {
         from service: LoggerService = LoggerService()
     ) async throws -> String {
         render(try await entries(since: date, from: service))
-    }
-
-    /// Renders entries as the one-line-per-record text both `text` and `fileURL` hand out.
-    private static func render(_ entries: [LogEntry]) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        return entries
-            .map { entry in
-                let message = entry.message
-                    .split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
-                    .joined(separator: #"\n"#)
-                return "\(formatter.string(from: entry.date)) [\(entry.level.rawValue)] [\(entry.category)] \(message)"
-            }
-            .joined(separator: "\n")
     }
 
     /// Writes the log to a plain text file and returns its URL, ready to hand to a `ShareLink`.
@@ -192,7 +171,55 @@ public enum LogExport {
         since date: Date,
         from service: LoggerService = LoggerService()
     ) async throws -> URL {
-        let entries = try await entries(since: date, from: service)
+        try writeFile(try await entries(since: date, from: service))
+    }
+
+    /// The one place the log store is opened. ``LogMirror`` harvests through this as well.
+    ///
+    /// The date is filtered in code because the store does not do it: for the current-process
+    /// scope `position(date:)` is accepted and ignored, and every entry of the process comes back
+    /// regardless (measured on macOS 26; the enumeration takes the same second either way).
+    @concurrent
+    static func readEntries(since date: Date, from service: LoggerService) async throws -> [LogEntry] {
+        let store = try OSLogStore(scope: .currentProcessIdentifier)
+        let position = store.position(date: date)
+        let predicate = NSPredicate(format: "subsystem == %@", service.subsystem)
+
+        var entries: [LogEntry] = []
+        for entry in try store.getEntries(with: [], at: position, matching: predicate) {
+            try Task.checkCancellation()
+            guard let entry = entry as? OSLogEntryLog, entry.date >= date else { continue }
+            entries.append(
+                LogEntry(
+                    date: entry.date,
+                    category: entry.category,
+                    level: LogLevel(entry.level),
+                    message: entry.composedMessage,
+                    id: entries.count
+                )
+            )
+        }
+        return entries
+    }
+
+    /// Renders entries as the one-line-per-record text both `text` and `fileURL` hand out.
+    static func render(_ entries: [LogEntry]) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        return entries
+            .map { entry in
+                let message = entry.message
+                    .split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+                    .joined(separator: #"\n"#)
+                return "\(formatter.string(from: entry.date)) [\(entry.level.rawValue)] [\(entry.category)] \(message)"
+            }
+            .joined(separator: "\n")
+    }
+
+    /// Writes rendered entries to a fresh, meaningfully named file in the temporary directory.
+    /// Shared with ``LogMirror`` so both exports look identical in a mailbox.
+    static func writeFile(_ entries: [LogEntry]) throws -> URL {
         guard !entries.isEmpty else { throw LogExportError.noEntries }
 
         // UTC, to match the timestamps inside the file. A filename in the device's local time

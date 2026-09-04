@@ -47,6 +47,8 @@ nonisolated extension Logger {
 
 `Logger(category:)` resolves the subsystem from the bundle identifier, so there is nothing to pass and nothing to keep in sync. A target that has to log under someone else's subsystem — an app extension filing under its host app — names it: `Logger(category: "Camera", subsystem: "com.host.app")`.
 
+That shared subsystem is for reading in Console and in a sysdiagnose, where one filter then shows both processes side by side. It does not merge exports: a process only ever reads its own entries back, so neither `LogExport` nor `LogMirror` in the app will ever see a line the extension wrote. An extension that needs nothing else from ButchKit should call `os.Logger`'s own `init(subsystem:category:)` with the host's identifier rather than link the package for one initializer — the package carries a resource bundle, and the extension would ship it a second time.
+
 Write the doc comment. It is what lets the next person — or the next agent — pick the right category instead of inventing a near-duplicate. A console filter full of `Camera`, `Capture` and `Recording` is how that goes wrong.
 
 Add a category when an area actually logs, not in advance. An unused category is noise.
@@ -125,6 +127,10 @@ Rules of thumb:
 - Violated assumptions are `fault`.
 - Successful routine operations are not logged above `debug`.
 
+Two of those rules meet on every success line, and this is the tiebreaker: a routine success earns `notice` only when it is the anchor a failure report needs to be readable — the store opening at launch, a sync run settling, an export finishing — and then once per launch or once per run. Everything else that went right becomes a count in that one summary line, never a line of its own.
+
+At `notice` and above the level is always enabled, so the interpolation always runs. A value that costs a pass over the data, such as the length of a text that was just decoded, is real work on a persisted line. Log the size you already have — the byte count that came in — instead.
+
 You do not need `#if DEBUG` around log calls. `debug` and `info` are not persisted in release anyway, and building the message is optimised away when nothing consumes it. The level controls visibility.
 
 ## Privacy
@@ -139,13 +145,18 @@ Logger.script.notice("Script: \(text)")
 Logger.script.notice("Script loaded: words=\(wordCount, privacy: .public) locale=\(locale, privacy: .public)")
 ```
 
-- Interpolated values are **private by default** and appear as `<private>` outside the debugger. Keep that default.
+- Interpolated values are **private by default** and appear as `<private>` in Console and in a sysdiagnose. They do **not** appear that way when the app reads its own log back: `LogExport`, `LogMirror` and every diagnostics file built from them show an unannotated value exactly as it was written. Only an explicit `privacy: .private` or `.private(mask: .hash)` survives into an export as a redaction.
 - Mark a value `public` only when it can never contain personal data: a locale identifier, a duration, a counter, an error code.
-- Anyone with the device and its passcode can read these logs. Nothing personal belongs in a `public` value.
+- Anyone with the device and its passcode can read these logs, and anyone who receives a diagnostics file reads all of it. Nothing personal belongs in any value, whatever its annotation.
 - To correlate equal values without revealing them, use `privacy: .private(mask: .hash)`.
-- System error text (`error.localizedDescription`) is fine as `public`, as long as it cannot carry user content.
+- Log an error as its domain and code, which `error.logCode` renders as two fields, and add `error.localizedDescription` only when the domain cannot embed a file name or user text. Foundation's file errors quote the file's name; CloudKit's and StoreKit's do not.
 
-When in doubt, do not log it.
+```swift
+Logger.store.error("Save failed: \(error.logCode, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+Logger.receiptImport.error("File unreadable: ext=\(url.pathExtension, privacy: .public) \(error.logCode, privacy: .public)")
+```
+
+When in doubt, do not log it. The one protection that holds everywhere — Console, sysdiagnose, export — is that user data is never logged, at any level, with any annotation.
 
 ## The readability test
 
@@ -216,34 +227,7 @@ The identifier is interpolated explicitly. `os.Logger` takes a message the compi
 
 ## Logging from a view
 
-Views can read the logger from the environment. It works without any setup:
-
-Name the category in `LoggerCategories.swift` as well, so it stays findable next to the others:
-
-```swift
-// LoggerCategories.swift
-nonisolated extension LogCategory {
-    /// Entitlement checks and paywall decisions.
-    static let purchase: Self = "Purchase"
-}
-```
-
-```swift
-struct PaywallView: View {
-    @Environment(\.log) private var log
-
-    var body: some View {
-        PaywallContent()
-            .onAppear {
-                log[.purchase].notice("Paywall presented: source=onboarding")
-            }
-    }
-}
-```
-
-The environment only changes how you reach the logger, not where categories are declared. It exists only inside a view body — services, actors and background queues use the static logger from the setup section, which is where most logging happens anyway.
-
-To point a view hierarchy at a different subsystem, set the value like any other: `.environment(\.log, LoggerService(subsystem: "com.host.app"))`.
+Views use the same static loggers as everything else; `Logger.purchase.notice(…)` inside an `onAppear` is the normal shape. The environment also carries a `LoggerService` as `\.log`, for the one case where a view hierarchy has to log under a subsystem other than the target's own: set `.environment(\.log, LoggerService(subsystem: "com.host.app"))` above it and write `log[.purchase].notice(…)` inside the body. Nothing else needs it, and categories stay declared in `LoggerCategories.swift` either way.
 
 ## Reading logs
 
@@ -251,26 +235,46 @@ While developing, the Xcode console filters by category and level. For a test de
 
 ## Exporting logs
 
-`LogExport` reads the app's own messages back, for example to attach them to a bug report:
+`LogMirror` keeps the app's persisted messages across launches and hands them back, for example to attach them to a bug report. It needs one mirror per app, applied at the root:
+
+```swift
+@main struct MyApp: App {
+    @State private var logMirror = LogMirror()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .logMirror(logMirror)
+        }
+    }
+}
+```
+
+Wherever diagnostics are shared, the mirror comes out of the environment:
 
 ```swift
 struct DiagnosticsView: View {
+    @Environment(\.logMirror) private var mirror
     @State private var report: URL?
     @State private var failure: String?
+    @State private var isPreparing = false
 
     var body: some View {
         VStack {
             Button("Prepare diagnostics") {
                 Task {
                     discard()
+                    isPreparing = true
+                    defer { isPreparing = false }
                     do {
-                        report = try await LogExport.fileURL(since: .now.addingTimeInterval(-3600))
+                        report = try await mirror.fileURL(since: .now.addingTimeInterval(-7 * 86_400))
                         failure = nil
                     } catch {
                         failure = error.localizedDescription
                     }
                 }
             }
+            .disabled(isPreparing)
 
             if let report {
                 ShareLink("Share diagnostics", item: report)
@@ -291,25 +295,32 @@ struct DiagnosticsView: View {
 }
 ```
 
-Handle the error rather than swallowing it with `try?`. `fileURL` throws `LogExportError.noEntries` when nothing matched the window, which is the *common* case: the app was relaunched, or the target logs under a different subsystem. Better to tell the user that than to hand them an attachment with nothing in it.
+Handle the error rather than swallowing it with `try?`. `fileURL` throws `LogExportError.noEntries` when nothing matched the window, and an empty attachment looks like a real report. Show a progress state: a read costs about a second, see below.
 
 `fileURL` writes a plain text file named `VideoSkript-Diagnostics-2026-08-05-1431-a3f91b2c.txt` and hands you its URL. The app name comes from the bundle, so there is nothing to configure and nothing to keep in sync when you rename the app. Share the URL, not the text: a shared string is pasted into the message body, a shared file arrives as an attachment — the difference between a report someone can open and one they have to scroll past. Every call writes its own file, so two shares can be open at once; delete it once the share sheet is done.
 
-Two more shapes exist for the same content. `LogExport.text(since:from:)` returns a string, for showing the log on screen. `LogExport.entries(since:from:)` returns structured values, for filtering or listing them.
+Two more shapes exist for the same content. `mirror.text(since:)` returns a string, for showing the log on screen. `mirror.entries(since:)` returns structured values, for filtering or listing them.
 
-The export filters by subsystem, so it has to read the same one you wrote to. If a target logs through its own service — an app extension using the host app's subsystem — pass that service in, otherwise the report comes back empty and nothing warns you:
+`LogExport` offers the same three shapes for the running launch only, without a file behind them. It is the right tool for a live view while developing and for a target that has no mirror; for anything a user sends you, use the mirror.
 
-```swift
-let service = LoggerService(subsystem: "com.host.app")
-let report  = try await LogExport.text(since: .now.addingTimeInterval(-3600), from: service)
-```
+## Keeping logs across launches
 
-Two limits shape what this feature can be:
+The system hands a process only its own log entries. Whatever an app wrote before its last relaunch is gone as far as it is concerned, and that is exactly the log a user reports from: "my entries are gone" arrives a day and several launches later. `LogMirror` closes that gap the only way the platform allows. It reads the process's own entries back and appends the persisted levels — `notice`, `error` and `fault` — to a file in the app container. Every later launch reads from that file.
 
-- **Only the running launch.** The system scopes the export to the current process. After a relaunch the process is a different one, so messages from before a crash are out of reach. Sending logs *while* a bug is happening works; sending them *after* a crash does not.
-- **`debug` and `info` are usually gone.** They live in an in-memory buffer and are not written to disk. Expect `notice`, `error` and `fault`.
+**Reading the store back costs about a second of CPU**, however little is new, so it happens rarely:
 
-Both sharpen the same rule: anything you may need later has to be logged at `notice` or above.
+- when the scene enters the background, which the `.logMirror(_:)` modifier does on its own,
+- at the start of every read through the mirror, so an export is never behind the live log.
+
+There is no timer, and the gap this leaves is honest: a crash loses the lines written since the last time the app went to the background. The system's crash report covers that moment; the mirror covers everything before it. On macOS the scene rarely enters the background and quitting reports no phase, so the harvest at the start of a read is the one that matters there.
+
+What else to know:
+
+- **One mirror per app.** Apply `.logMirror(_:)` once, at the root, with a mirror the app owns in `@State`. Two mirrors on the same file are safe but read the store twice for the same lines.
+- **Capacity.** The file holds a million bytes by default and drops its oldest lines first. An app that logs the way this document asks writes a few dozen lines a day; that is months of history.
+- **Where it lives.** `Library/Logs/<subsystem>/` in the app's container, excluded from backup. The log is specific to one device, and values without a privacy annotation are in it as written — which changes nothing about what to log, and is the reason the file never travels on its own.
+- **A category of ButchKit's own.** The mirror logs its own failures under the category `LogMirror` in the app's subsystem, so a harvest that failed is visible in the very log it failed to keep. Do not declare that category yourself.
+- **`debug` and `info` are not kept.** They were never written to disk by the system either. Anything you may need later has to be logged at `notice` or above; the mirror does not change that rule, it is the reason the rule pays off.
 
 ## Rules for agents
 
@@ -320,8 +331,11 @@ A compact checklist for anyone — human or AI — writing log statements in a B
 - Never build a logger — `Logger(category:)` or `service[…]` — inside a loop or a hot path.
 - Inside a class or actor, bind a property to a local before logging it, rather than writing `self.` inside the interpolation.
 - Constant stem first, then `key=value` fields. One line per message.
-- Never mark a value `public` if it can contain user data.
+- Never mark a value `public` if it can contain user data. Never log user data at all: an export shows unannotated values in the clear.
 - Use `notice` or higher for anything that must be visible in the field.
+- A routine success is `notice` only as the once-per-launch or once-per-run anchor of a report; every other success is a count in that summary line.
+- Log an error as `\(error.logCode, privacy: .public)`; add `localizedDescription` only when its domain cannot carry a file name or user text.
 - No emoji, no drama, US English.
 - Put formatting inside the interpolation, never in a prebuilt string.
-- Add a category only when an area actually logs.
+- Add a category only when an area actually logs. `LogMirror` is ButchKit's own.
+- One `LogMirror` per app, applied at the root with `.logMirror(_:)`. Exports a user sends go through it, not through `LogExport`.

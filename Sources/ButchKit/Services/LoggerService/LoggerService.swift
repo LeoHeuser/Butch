@@ -25,7 +25,8 @@ import OSLog
 ///
 /// The service exists for the cases where the subsystem is not the target's own: an app extension
 /// filing under its host app, a test writing into a subsystem nothing else touches, and
-/// ``LogExport``, which filters by subsystem and so has to be told which one to read.
+/// ``LogExport`` and ``LogMirror``, which filter by subsystem and so have to be told which one to
+/// read.
 ///
 /// ```swift
 /// let host = LoggerService(subsystem: "com.host.app")

@@ -238,4 +238,21 @@ struct LogExportTests {
         #expect(again.map(\.id) == found.map(\.id))
     }
 
+    /// The store ignores the requested position for the current-process scope and hands back
+    /// every entry of the process, so the date has to be applied in code. A window that starts
+    /// after the message was written must not contain it.
+    @Test("Leaves out messages written before the window")
+    func sinceFiltersByDate() async throws {
+        let probe = Probe("Since")
+        probe.service["Since"].notice("Before the window: marker=\(probe.marker, privacy: .public)")
+
+        let match = try await waitForResult {
+            try await LogExport.entries(since: probe.start, from: probe.service)
+                .first { $0.message.contains(probe.marker) }
+        }
+        try #require(match != nil, "The marker message was not read back from the log store.")
+
+        let later = try await LogExport.entries(since: Date().addingTimeInterval(60), from: probe.service)
+        #expect(!later.contains { $0.message.contains(probe.marker) })
+    }
 }
