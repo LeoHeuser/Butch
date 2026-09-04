@@ -191,6 +191,39 @@ struct LogMirrorTests {
         #expect(entries.count == 1)
     }
 
+    /// The store can hand back the freshest entry twice in one read. Two records identical to
+    /// the bit are one message; the same text a millisecond later is another.
+    @Test("Keeps one copy of an entry a read handed back twice")
+    func uniquedCollapsesExactDuplicates() {
+        let date = Date()
+        let first = LogEntry(date: date, category: "Same", level: .notice, message: "Same: n=1", id: 0)
+        let later = LogEntry(date: date.addingTimeInterval(0.001), category: "Same", level: .notice, message: "Same: n=1", id: 1)
+
+        let unique = LogMirror.uniqued([first, first, later, first].map(LogMirror.Record.init))
+
+        #expect(unique.map(\.date) == [first.date, later.date])
+    }
+
+    /// Two callers on one mirror at the same moment share one store read and still leave one
+    /// copy of every line.
+    @Test("Overlapping harvests on one instance share the work")
+    func overlappingHarvestsCoalesce() async throws {
+        let probe = Probe("Coalesce")
+        defer { probe.discard() }
+        probe.service["Coalesce"].notice("Overlapping harvest: marker=\(probe.marker, privacy: .public)")
+        let mirror = probe.mirror()
+
+        let found = try await waitForResult {
+            async let one: Void = mirror.harvest()
+            async let two: Void = mirror.harvest()
+            _ = try await (one, two)
+            let found = try await lines(containing: probe.marker, in: mirror)
+            return found.isEmpty ? nil : found
+        }
+        let entries = try #require(found, "The marker message was never mirrored.")
+        #expect(entries.count == 1)
+    }
+
     /// An append that died halfway leaves a fragment without a line break. It has to go before
     /// the next line is written, or the two would fuse into one unreadable record.
     @Test("Cuts a truncated trailing line before appending")

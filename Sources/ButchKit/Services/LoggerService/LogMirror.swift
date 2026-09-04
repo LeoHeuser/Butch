@@ -48,6 +48,10 @@ import os
 /// written. Nothing in the strategy changes because of that — user data is never logged at any
 /// level — but it is the reason the file never travels to another device on its own.
 ///
+/// A read taken while the system flushes its buffer can hand back the freshest entry twice. The
+/// mirror keeps one copy: two records identical in date, category, level and text within one
+/// read are one message, since the store's clock is far finer than any two deliberate messages.
+///
 /// One mirror per subsystem per process is the intended shape. Two instances on the same file
 /// are safe, they take turns through a lock and share what this launch has written, but they
 /// read the store twice for the same result.
@@ -81,6 +85,10 @@ public actor LogMirror {
     public nonisolated let service: LoggerService
 
     private nonisolated let logger: Logger
+
+    /// The harvest running right now, if any. A caller arriving while one runs joins it rather
+    /// than paying for a second store read that would find nothing the first did not.
+    private var harvestInFlight: Task<Void, any Error>?
 
     /// Creates a mirror.
     ///
@@ -116,10 +124,35 @@ public actor LogMirror {
     /// Safe to call at any time, and idempotent: a second call right after the first finds
     /// nothing new. It still pays the second the store read costs, which is why the
     /// ``SwiftUICore/View/logMirror(_:)`` modifier calls it only on the way to the background.
+    /// Callers that overlap share one read: a diagnostics reveal followed by backgrounding is
+    /// one second of CPU, not two.
+    ///
+    /// Cancelling a caller cancels the shared read. The one caller that cancels is the
+    /// background hook when the system withdraws its time, and at that point nobody else's
+    /// answer is coming either.
     public func harvest() async throws {
-        let live = try await LogExport.readEntries(since: .distantPast, from: service)
-            .filter(\.level.isPersisted)
-            .map(Record.init)
+        let task: Task<Void, any Error>
+        if let running = harvestInFlight {
+            task = running
+        } else {
+            task = Task { try await harvestNow() }
+            harvestInFlight = task
+        }
+        defer { if harvestInFlight == task { harvestInFlight = nil } }
+
+        try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
+    }
+
+    private func harvestNow() async throws {
+        let live = Self.uniqued(
+            try await LogExport.readEntries(since: .distantPast, from: service)
+                .filter(\.level.isPersisted)
+                .map(Record.init)
+        )
 
         try prepareDirectory()
         try withLock {
@@ -220,13 +253,25 @@ public actor LogMirror {
 
     // MARK: The file
 
+    /// One copy of each record a single read handed back more than once.
+    ///
+    /// At the moment the system flushes its log buffer, a read can return the freshest entry
+    /// twice, once from memory and once from disk, and the two are identical to the bit. Dropping
+    /// the repeat is safe because the store's clock ticks about every ten microseconds: two
+    /// deliberate messages with the same text never share a tick unless a loop logs at a
+    /// persisted level, which the strategy forbids. Order is kept; the first copy stays.
+    nonisolated static func uniqued(_ records: [Record]) -> [Record] {
+        var seen: Set<Record> = []
+        return records.filter { seen.insert($0).inserted }
+    }
+
     /// One line of the file. `launch` is what tells this process's lines apart from earlier ones;
     /// the rest is a ``LogEntry`` without the per-read position.
     ///
     /// `Hashable` over every field including the date, which is why the date is stored as the
     /// encoder's default `Double`: it round-trips exactly, and two records only count as the same
     /// message when the store's timestamp agrees to the bit.
-    private struct Record: Codable, Hashable {
+    struct Record: Codable, Hashable {
         let launch: UUID
         let date: Date
         let category: String

@@ -136,8 +136,11 @@ public enum LogExport {
     /// Reads log entries since the given date and renders them as plain text, one line each.
     ///
     /// Each line reads `<timestamp> [<level>] [<category>] <message>`, which is what you want in
-    /// an email or a shared file. A message that itself contains line breaks is flattened, with
-    /// each break written as a literal `\n`, so one record always stays one line.
+    /// an email or a shared file. The timestamp is in the device's time zone with the offset
+    /// written out, `2026-09-04T10:52:02.923+02:00`, so it matches the clock the user was
+    /// looking at and still reads unambiguously anywhere. A message that itself contains line
+    /// breaks is flattened, with each break written as a literal `\n`, so one record always
+    /// stays one line.
     ///
     /// To hand the log to a share sheet, use ``fileURL(since:from:)`` instead — sharing a string
     /// pastes it into the message body, sharing a file attaches it.
@@ -206,6 +209,9 @@ public enum LogExport {
     static func render(_ entries: [LogEntry]) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // The device's zone rather than UTC: a report is read next to a conversation with the
+        // user, and "what happened at 10:52" should not need converting. The offset keeps it exact.
+        formatter.timeZone = .current
 
         return entries
             .map { entry in
@@ -222,11 +228,11 @@ public enum LogExport {
     static func writeFile(_ entries: [LogEntry]) throws -> URL {
         guard !entries.isEmpty else { throw LogExportError.noEntries }
 
-        // UTC, to match the timestamps inside the file. A filename in the device's local time
-        // would contradict its own contents by up to a day for users far from GMT.
+        // The device's zone, to match the timestamps inside the file: a name that disagrees with
+        // its own contents by hours would send a reader looking for the wrong minute.
         let stamp = DateFormatter()
         stamp.locale = Locale(identifier: "en_US_POSIX")
-        stamp.timeZone = TimeZone(identifier: "UTC")
+        stamp.timeZone = .current
         stamp.dateFormat = "yyyy-MM-dd-HHmm"
 
         let name = "\(appName)-Diagnostics-\(stamp.string(from: Date()))-\(UUID().uuidString.prefix(8)).txt"

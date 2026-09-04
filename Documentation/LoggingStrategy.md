@@ -297,7 +297,7 @@ struct DiagnosticsView: View {
 
 Handle the error rather than swallowing it with `try?`. `fileURL` throws `LogExportError.noEntries` when nothing matched the window, and an empty attachment looks like a real report. Show a progress state: a read costs about a second, see below.
 
-`fileURL` writes a plain text file named `VideoSkript-Diagnostics-2026-08-05-1431-a3f91b2c.txt` and hands you its URL. The app name comes from the bundle, so there is nothing to configure and nothing to keep in sync when you rename the app. Share the URL, not the text: a shared string is pasted into the message body, a shared file arrives as an attachment — the difference between a report someone can open and one they have to scroll past. Every call writes its own file, so two shares can be open at once; delete it once the share sheet is done.
+`fileURL` writes a plain text file named `VideoSkript-Diagnostics-2026-08-05-1431-a3f91b2c.txt` and hands you its URL. Timestamps inside, and the stamp in the name, are in the device's time zone with the offset written out, so `10:52:02.923+02:00` is what the user's clock showed. The app name comes from the bundle, so there is nothing to configure and nothing to keep in sync when you rename the app. Share the URL, not the text: a shared string is pasted into the message body, a shared file arrives as an attachment — the difference between a report someone can open and one they have to scroll past. Every call writes its own file, so two shares can be open at once; delete it once the share sheet is done.
 
 Two more shapes exist for the same content. `mirror.text(since:)` returns a string, for showing the log on screen. `mirror.entries(since:)` returns structured values, for filtering or listing them.
 
