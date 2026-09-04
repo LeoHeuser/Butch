@@ -17,7 +17,7 @@ set -euo pipefail
 
 version=${1:?usage: release.sh <version, e.g. 1.4.5>}
 kit=$(cd "$(dirname "$0")/.." && pwd)
-apps=("$kit/../Kadidi")
+apps=("$kit/../Kadidi" "$kit/../VideoKlipp")
 
 cd "$kit"
 [[ $(git branch --show-current) == main ]] || { echo "ButchKit is not on main"; exit 1 }
@@ -51,8 +51,9 @@ PY
 
   git add "$resolved"
   git commit -m "Bump ButchKit to $version"
+  # Apps may sit on a release branch; the bump lands wherever the app is.
   if git remote get-url origin >/dev/null 2>&1; then
-    git push origin main
+    git push origin HEAD
   else
     echo "$name has no origin remote, bump committed but not pushed"
   fi
