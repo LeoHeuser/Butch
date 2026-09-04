@@ -8,6 +8,11 @@
 # Xcode Cloud builds from exactly that file, which is why this script writes the
 # new pin there and commits it. That is the only step that used to require
 # opening the .xcodeproj itself.
+#
+# The GitHub release is a readable changelog per version; SwiftPM only needs
+# the tag. Its notes are the commit subjects since the previous tag, because
+# GitHub's own generated notes only list pull requests and main is committed
+# to directly.
 set -euo pipefail
 
 version=${1:?usage: release.sh <version, e.g. 1.4.5>}
@@ -17,9 +22,12 @@ apps=("$kit/../Kadidi")
 cd "$kit"
 [[ $(git branch --show-current) == main ]] || { echo "ButchKit is not on main"; exit 1 }
 [[ -z $(git status --porcelain) ]] || { echo "ButchKit has uncommitted changes"; exit 1 }
+gh auth status >/dev/null 2>&1 || { echo "gh is not logged in, run: gh auth login"; exit 1 }
 
+previous=$(git describe --tags --abbrev=0)
 git tag "v$version"
 git push origin main "v$version"
+gh release create "v$version" --title "v$version" --notes "$(git log --pretty='- %s' "$previous..HEAD")"
 revision=$(git rev-parse HEAD)
 
 for app in $apps; do
